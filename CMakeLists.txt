@@ -23,6 +23,7 @@ add_executable(CPPGame
     src/Building.cpp
     src/buildings/Base.cpp
     src/buildings/ResidentialArea.cpp
+    src/buildings/CityCenter.cpp
     src/City.cpp
     src/business/Workplace.cpp
     src/business/Product.cpp
