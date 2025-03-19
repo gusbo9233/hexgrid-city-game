@@ -14,7 +14,8 @@ Game::Game()
       mSelectedCoord(0, 0, 0),
       mHasSelection(false),
       mCurrentAxis(HighlightAxis::None),
-      mSoldier(nullptr) {
+      mSoldier(nullptr),
+      mFogOfWarEnabled(true) {
     mWindow.setFramerateLimit(60);
     
     // Initialize the camera view
@@ -26,17 +27,17 @@ Game::Game()
     // Get the center hex
     Hexagon* centerHex = mGrid.getHexAt({0, 0, 0});
     if (centerHex) {
-        // Create a soldier at the center hex coordinates (0,0,0)
-        mSoldier = new Soldier(0, 0);
+        // Create a soldier at the center hex coordinates (0,0,0) with unique_ptr
+        mSoldier = std::make_unique<Soldier>(0, 0);
         
         // Set the soldier in the hex and highlight it
-        centerHex->setCharacter(mSoldier);
+        centerHex->setCharacter(mSoldier.get());
         
         // Position the soldier's sprite at the hex's pixel position
         mSoldier->setPosition(centerHex->getPosition());
     } else {
         // Fallback: create at origin if center hex not found
-        mSoldier = new Soldier(0, 0);
+        mSoldier = std::make_unique<Soldier>(0, 0);
     }
     mSelectedCharacter = nullptr;
     
@@ -46,16 +47,8 @@ Game::Game()
 
 // Add destructor to clean up memory
 Game::~Game() {
-    if (mSoldier) {
-        delete mSoldier;
-        mSoldier = nullptr;
-    }
-    
-    // Clean up cities
-    for (auto* city : mCities) {
-        delete city;
-    }
-    mCities.clear();
+    // Smart pointers automatically clean up mSoldier and mCities
+    // No explicit cleanup needed
 }
 
 void Game::run() {
@@ -79,6 +72,7 @@ void Game::onLeftClick(const sf::Vector2f& worldPos) {
         mGrid.resetHighlights();
         mHasSelection = false;
         mCurrentAxis = HighlightAxis::None;
+        mSelectedCharacter = std::nullopt;
         return;
     }
     // Get the hex at the clicked position
@@ -88,22 +82,52 @@ void Game::onLeftClick(const sf::Vector2f& worldPos) {
         mSelectedCoord = hex->getCoord();
         mHasSelection = true;
         
-        // Highlight the selected hex
-        if (hex->getCharacter()) 
-        {
+        // Select and highlight based on what's on the hex
+        if (hex->getCharacter()) {
+            Character* character = hex->getCharacter();
+            
+            // Highlight character hex in yellow
             hex->highlight(sf::Color::Yellow);
-            mGrid.highlightAdjacentHexes(hex->getCoord(), sf::Color::Green);
+            
+            // Different behavior based on character type
+            if (character->isCharacterType(CharacterType::Soldier)) {
+                // Soldiers can move to adjacent hexes
+                mGrid.highlightAdjacentHexes(hex->getCoord(), sf::Color::Green);
+            }
+            
+            // Set the character as selected
+            mSelectedCharacter = character;
+        } 
+        else if (hex->hasBuilding()) {
+            Building* building = hex->getBuilding();
+            
+            // Different highlighting based on building type
+            if (building->isBuildingType(BuildingType::CityCenter)) {
+                // City center gets an orange highlight
+                hex->highlight(sf::Color(255, 165, 0)); // Orange
+            } 
+            else if (building->isBuildingType(BuildingType::ResidentialArea)) {
+                // Residential areas get a light blue highlight
+                hex->highlight(sf::Color(135, 206, 235)); // Sky blue
+            }
+            else {
+                // Default building highlight
+                hex->highlight(sf::Color(255, 200, 0)); // Gold
+            }
+            
+            // No character selection
+            mSelectedCharacter = std::nullopt;
+        }
+        else {
+            // Highlight empty hex in cyan
+            hex->highlight(sf::Color(0, 255, 255)); // Cyan
+            
+            // No character selection
+            mSelectedCharacter = std::nullopt;
         }
         
         // Reset current axis highlight
         mCurrentAxis = HighlightAxis::None;
-
-        //Get the character from the hex
-        Character* character = hex->getCharacter();
-        if (character) {
-            //Set the character as selected
-            mSelectedCharacter = character;
-        }
     }
 }
 
@@ -166,6 +190,11 @@ void Game::onKeyPress(sf::Keyboard::Key key) {
             mCurrentAxis = HighlightAxis::None;
         }
     }
+    
+    // Add fog of war toggle with 'F' key
+    if (key == sf::Keyboard::Key::F) {
+        toggleFogOfWar();
+    }
 }
 
 sf::Vector2f Game::clampCameraPosition(const sf::Vector2f& position) {
@@ -216,13 +245,18 @@ void Game::updateCamera(const sf::Vector2f& movement) {
 
 void Game::update() {
     // No additional updates needed
+    
+    // Update visibility for fog of war
+    updateVisibility();
 }
 
 void Game::render() {
-    // Clear the screen
     mRenderer.clear();
     
-    // Render the hex grid
+    // Set fog of war state in renderer
+    mRenderer.setFogOfWarEnabled(mFogOfWarEnabled);
+    
+    // Render the grid (which now handles visibility)
     mRenderer.render(mGrid);
     
     // Render the soldier
@@ -338,13 +372,72 @@ void Game::generateCityHexesPositions() {
     sf::Color city2Color(140, 170, 140); // Muted greenish-grey
     sf::Color city3Color(140, 140, 180); // Muted bluish-grey
     
-    // Create city objects with their unique colors
-    City* city1 = new City(city1Hexes, city1Color);
-    City* city2 = new City(city2Hexes, city2Color);
-    City* city3 = new City(city3Hexes, city3Color);
+    // Create city objects with their unique colors using unique_ptr
+    auto city1 = std::make_unique<City>(city1Hexes, city1Color);
+    auto city2 = std::make_unique<City>(city2Hexes, city2Color);
+    auto city3 = std::make_unique<City>(city3Hexes, city3Color);
     
     // Add cities to the game's collection
-    mCities.push_back(city1);
-    mCities.push_back(city2);
-    mCities.push_back(city3);
+    mCities.push_back(std::move(city1));
+    mCities.push_back(std::move(city2));
+    mCities.push_back(std::move(city3));
+}
+
+void Game::updateVisibility() {
+    if (!mFogOfWarEnabled) {
+        // If fog of war is disabled, make everything visible
+        for (auto hex : mGrid.getAllHexes()) {
+            hex->setVisible(true);
+            // No longer setting explored state
+        }
+        return;
+    }
+    
+    // Get all game entities for visibility calculation
+    std::vector<Character*> characters = getCharacters();
+    std::vector<Building*> buildings = getBuildings();
+    std::vector<City*> cities;
+    
+    // Extract raw pointers to cities
+    for (const auto& city : mCities) {
+        cities.push_back(city.get());
+    }
+    
+    // Update visibility
+    mVisibilitySystem.updateVisibility(mGrid, characters, buildings, cities);
+}
+
+void Game::toggleFogOfWar() {
+    mFogOfWarEnabled = !mFogOfWarEnabled;
+    
+    // Update visibility immediately
+    updateVisibility();
+}
+
+std::vector<Character*> Game::getCharacters() const {
+    std::vector<Character*> characters;
+    
+    // Add the soldier if it exists
+    if (mSoldier) {
+        characters.push_back(mSoldier.get());
+    }
+    
+    // Add any other characters here
+    
+    return characters;
+}
+
+std::vector<Building*> Game::getBuildings() const {
+    std::vector<Building*> buildings;
+    
+    // Collect buildings from all cities
+    for (const auto& city : mCities) {
+        for (const auto& [coord, building] : city->getBuildings()) {
+            buildings.push_back(building.get());
+        }
+    }
+    
+    // Add any standalone buildings here
+    
+    return buildings;
 }

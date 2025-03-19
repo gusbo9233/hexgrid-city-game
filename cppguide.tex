@@ -1,0 +1,379 @@
+\documentclass{article}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage[margin=1in]{geometry}
+\usepackage{hyperref}
+
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstdefinestyle{cppstyle}{
+    backgroundcolor=\color{backcolour},   
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{blue},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\small,
+    breakatwhitespace=false,         
+    breaklines=true,                 
+    captionpos=b,                    
+    keepspaces=true,                 
+    numbers=left,                    
+    numbersep=5pt,                  
+    showspaces=false,                
+    showstringspaces=false,
+    showtabs=false,                  
+    tabsize=2,
+    language=C++
+}
+
+\lstset{style=cppstyle}
+
+\title{C++ Programming Guide\\Using Examples from a Hexagon Game}
+\author{Game Development Team}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+\tableofcontents
+
+\section{Introduction to C++}
+
+C++ is a powerful, general-purpose programming language that extends the C language with object-oriented features. It was designed by Bjarne Stroustrup and is widely used for system/software development, game programming, and performance-critical applications.
+
+This guide will teach C++ concepts using real-world examples from our hexagon-based game project.
+
+\section{Basic C++ Concepts}
+
+\subsection{Classes and Objects}
+
+Classes are the building blocks of object-oriented programming in C++. A class is a blueprint that defines attributes (data members) and behaviors (member functions) of objects.
+
+\begin{lstlisting}[caption=Basic Class Definition (Character.h)]
+class Character {
+    public:
+        Character(int q, int r);
+        virtual ~Character() = default;
+        
+        // Position setting methods
+        void setPosition(const sf::Vector2f& pixelPos);
+        void setHexCoord(int q, int r);
+        
+    private:
+        int mQ; // Q coordinate in hex grid
+        int mR; // R coordinate in hex grid
+        
+        int health;
+        int maxHealth;
+        int attackPower;
+};
+\end{lstlisting}
+
+The \texttt{Character} class defines the basic properties and behaviors of game characters. Objects are instances of classes.
+
+\subsection{Encapsulation}
+
+Encapsulation is hiding implementation details and restricting access to data through access specifiers:
+
+\begin{itemize}
+    \item \texttt{public}: Members accessible from anywhere
+    \item \texttt{protected}: Members accessible within the class and derived classes
+    \item \texttt{private}: Members accessible only within the class
+\end{itemize}
+
+\begin{lstlisting}[caption=Encapsulation Example (Building.h)]
+class Building {
+    public:
+        // Public interface - accessible to all
+        void draw(sf::RenderWindow& window) const;
+        void setPosition(const sf::Vector2f& position);
+        sf::Vector2f getPosition() const { return mPosition; }
+    
+    protected:
+        // Protected members - accessible to derived classes
+        void initializeShape();
+        bool tryLoadTexture(const std::string& imagePath);
+        static constexpr float STANDARD_SIZE = 25.0f;
+        
+    private:
+        // Private members - only accessible within Building
+        sf::RectangleShape mShape;
+        sf::Vector2f mPosition;
+        std::unique_ptr<sf::Texture> mTexture;
+        bool mHasTexture;
+};
+\end{lstlisting}
+
+\subsection{Headers and Source Files}
+
+C++ programs typically split class declarations (headers) from implementations (source files):
+
+\begin{lstlisting}[caption=Header File (Soldier.h)]
+#ifndef SOLDIER_H
+#define SOLDIER_H
+
+#include "Character.h"
+
+class Soldier final : public Character {
+public:
+    Soldier(int q, int r);
+    
+    // Methods declarations
+    CharacterType getType() const override { return CharacterType::Soldier; }
+    void attack(Character* target);
+    void move(Hexagon* targetHex);
+
+protected:
+    void doRender(sf::RenderWindow& window) const override;
+};
+
+#endif
+\end{lstlisting}
+
+\begin{lstlisting}[caption=Source File (Soldier.cpp)]
+#include "../../include/Soldier.h"
+#include <iostream>
+
+Soldier::Soldier(int q, int r) : Character(q, r) {
+    loadTexture(SOLDIER_TEXTURE);
+}
+
+void Soldier::doRender(sf::RenderWindow& window) const {
+    Character::doRender(window);
+    // Soldier-specific rendering
+}
+
+void Soldier::attack(Character* target) {
+    if (!target) return;
+    std::cout << "Soldier attacks!" << std::endl;
+}
+
+void Soldier::move(Hexagon* targetHex) {
+    if (!targetHex) return;
+    setHexCoord(targetHex->getCoord());
+    setPosition(targetHex->getPosition());
+}
+\end{lstlisting}
+
+\section{Object-Oriented Programming}
+
+\subsection{Inheritance}
+
+Inheritance allows a class to reuse and extend the functionality of another class.
+
+\begin{lstlisting}[caption=Inheritance Example]
+// Base class
+class Character {
+    // Common functionality for all characters
+};
+
+// Derived class
+class Soldier final : public Character {
+    // Soldier-specific functionality
+    // "final" means no further derivation allowed
+};
+\end{lstlisting}
+
+\subsection{Polymorphism}
+
+Polymorphism allows objects of different classes to be treated as objects of a common base class, with specific behaviors determined at runtime.
+
+\begin{lstlisting}[caption=Polymorphism Example]
+// Base class with virtual function
+class Character {
+public:
+    virtual CharacterType getType() const = 0; // Pure virtual
+    virtual void update(float deltaTime) {}
+};
+
+// Derived class implementations
+class Soldier final : public Character {
+public:
+    CharacterType getType() const override { return CharacterType::Soldier; }
+    void update(float deltaTime) override { /* Soldier update */ }
+};
+
+// Using polymorphism
+void gameLoop(std::vector<Character*>& characters, float deltaTime) {
+    for (auto character : characters) {
+        character->update(deltaTime); // Calls appropriate version
+    }
+}
+\end{lstlisting}
+
+\subsection{Abstract Classes and Interfaces}
+
+Abstract classes have at least one pure virtual function and cannot be instantiated.
+
+\begin{lstlisting}[caption=Abstract Class Example]
+class Character {
+public:
+    virtual CharacterType getType() const = 0; // Pure virtual
+    virtual float getScaleFactor() const = 0; // Pure virtual
+    
+    // Concrete method using abstract methods
+    void render(sf::RenderWindow& window) const {
+        // Implementation that calls virtual methods
+    }
+};
+\end{lstlisting}
+
+\section{Modern C++ Features}
+
+\subsection{Smart Pointers}
+
+Smart pointers manage memory automatically to prevent leaks.
+
+\begin{lstlisting}[caption=Smart Pointers Example (Game.h)]
+// Use unique_ptr for owned Soldier
+std::unique_ptr<Soldier> mSoldier;
+
+// This is a non-owning reference, so keep as raw pointer
+std::optional<Character*> mSelectedCharacter;
+
+// Vector of unique_ptrs for owned cities
+std::vector<std::unique_ptr<City>> mCities;
+\end{lstlisting}
+
+\subsection{Override and Final Specifiers}
+
+\begin{lstlisting}[caption=Override and Final Example]
+// Base class
+class Character {
+public:
+    virtual void update(float deltaTime) {}
+};
+
+// Derived class - marked final, cannot be derived from further
+class Soldier final : public Character {
+public:
+    // override ensures this overrides a base class method
+    void update(float deltaTime) override { /* implementation */ }
+};
+\end{lstlisting}
+
+\subsection{Non-Virtual Interface Pattern}
+
+The NVI pattern provides a stable interface while allowing customization.
+
+\begin{lstlisting}[caption=NVI Pattern Example]
+class Building {
+public:
+    // Non-virtual public interface
+    void draw(sf::RenderWindow& window) const {
+        // Pre-conditions, common code...
+        doDraw(window);
+        // Post-conditions, common code...
+    }
+    
+protected:
+    // Virtual implementation method
+    virtual void doDraw(sf::RenderWindow& window) const;
+};
+\end{lstlisting}
+
+\section{Memory Management}
+
+\subsection{RAII (Resource Acquisition Is Initialization)}
+
+C++ uses RAII to tie resource management to object lifetime.
+
+\begin{lstlisting}[caption=RAII Example]
+// Resource (texture) is acquired in constructor
+Building::Building(const sf::Vector2f& position) : 
+    mPosition(position), 
+    mHasTexture(false) {
+    mTexture = std::make_unique<sf::Texture>();
+    initializeShape();
+}
+
+// Resource is automatically released when object is destroyed
+// No explicit cleanup code needed because of smart pointers
+\end{lstlisting}
+
+\subsection{Ownership Semantics}
+
+Clear ownership semantics prevent memory leaks and double-free errors.
+
+\begin{lstlisting}[caption=Ownership Example (Game.h)]
+class Game {
+private:
+    // Game owns the soldier (unique_ptr)
+    std::unique_ptr<Soldier> mSoldier;
+    
+    // Game doesn't own the selected character (raw pointer)
+    std::optional<Character*> mSelectedCharacter;
+    
+    // Game owns all cities (vector of unique_ptrs)
+    std::vector<std::unique_ptr<City>> mCities;
+};
+\end{lstlisting}
+
+\section{Best Practices}
+
+\subsection{Polymorphic Best Practices}
+
+\begin{lstlisting}[caption=Polymorphic Best Practices]
+// 1. Virtual destructors
+virtual ~Character() = default;
+
+// 2. Use override for all overridden methods
+void update(float deltaTime) override;
+
+// 3. Mark leaf classes as final
+class Soldier final : public Character {...};
+
+// 4. Non-Virtual Interface pattern
+// Public non-virtual:
+void render(sf::RenderWindow& window) const;
+// Protected virtual:
+virtual void doRender(sf::RenderWindow& window) const;
+
+// 5. Pure virtual methods for required implementations
+virtual BuildingType getType() const = 0;
+
+// 6. Smart pointers for memory management
+std::unique_ptr<sf::Texture> mTexture;
+
+// 7. Clear ownership semantics
+// Owner: std::unique_ptr<T>
+// Non-owner: T* or std::optional<T*>
+\end{lstlisting}
+
+\section{Advanced C++ Concepts}
+
+\subsection{Templates}
+
+Templates enable generic programming, allowing algorithms and classes to work with any data type.
+
+\begin{lstlisting}[caption=Templates Example (Standard Library Usage)]
+// Using vector template with Building pointers
+std::vector<std::unique_ptr<Building>> buildings;
+
+// Using make_unique template function
+auto soldier = std::make_unique<Soldier>(q, r);
+\end{lstlisting}
+
+\subsection{Const Correctness}
+
+Functions that don't modify object state should be marked const.
+
+\begin{lstlisting}[caption=Const Correctness Example]
+// Const methods - don't modify object state
+sf::Vector2f getPosition() const { return mPosition; }
+void render(sf::RenderWindow& window) const;
+CharacterType getType() const override;
+
+// Non-const methods - modify object state
+void setPosition(const sf::Vector2f& position);
+void update(float deltaTime);
+\end{lstlisting}
+
+\section{Conclusion}
+
+This guide covered fundamental and advanced C++ concepts with practical examples from a real game project. The hexagon game demonstrates many C++ best practices including class design, inheritance, polymorphism, memory management, and modern C++ features.
+
+\end{document}

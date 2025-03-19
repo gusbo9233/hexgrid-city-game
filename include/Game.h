@@ -4,11 +4,13 @@
 #include <SFML/Graphics.hpp>
 #include <optional>
 #include <vector>
+#include <memory>
 #include "HexGrid.h"
 #include "InputHandler.h"
 #include "Renderer.h"
 #include "Soldier.h"
 #include "City.h"
+#include "VisibilitySystem.h"
 
 class Game {
 public:
@@ -40,6 +42,7 @@ private:
     
     InputHandler mInputHandler;
     Renderer mRenderer;
+    VisibilitySystem mVisibilitySystem;
     
     HexGrid mGrid;
     Hexagon::CubeCoord mSelectedCoord;
@@ -49,11 +52,17 @@ private:
     // Track which axis to highlight
     HighlightAxis mCurrentAxis;
     
-    Soldier* mSoldier;
+    // Use unique_ptr for owned Soldier
+    std::unique_ptr<Soldier> mSoldier;
+    
+    // This is a non-owning reference, so keep as raw pointer
     std::optional<Character*> mSelectedCharacter;
     
-    // Cities in the game
-    std::vector<City*> mCities;
+    // Use unique_ptr for owned cities
+    std::vector<std::unique_ptr<City>> mCities;
+    
+    // Toggle for fog of war
+    bool mFogOfWarEnabled = true;
     
     void update();
     void render();
@@ -63,6 +72,18 @@ private:
     void generateCityHexesPositions();
     // Clamp camera position to ensure it stays within grid bounds
     sf::Vector2f clampCameraPosition(const sf::Vector2f& position);
+    
+    // Update visibility based on game entities
+    void updateVisibility();
+    
+    // Helper to toggle fog of war on/off
+    void toggleFogOfWar();
+    
+    // Get all characters for visibility calculations
+    std::vector<Character*> getCharacters() const;
+    
+    // Get all buildings for visibility calculations
+    std::vector<Building*> getBuildings() const;
 };
 
 #endif // GAME_H 

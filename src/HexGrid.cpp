@@ -160,4 +160,51 @@ bool HexGrid::areAdjacent(const Hexagon::CubeCoord& coord1, const Hexagon::CubeC
 
 const std::unordered_map<Hexagon::CubeCoord, std::unique_ptr<Hexagon>>& HexGrid::getHexagons() const {
     return mHexagons;
+}
+
+// Get all hexes within a certain range of a center hex
+std::vector<Hexagon*> HexGrid::getHexesInRange(const Hexagon::CubeCoord& center, int range) {
+    std::vector<Hexagon*> result;
+    
+    // Iterate through all possible cube coordinates in range
+    for (int q = -range; q <= range; q++) {
+        for (int r = std::max(-range, -q - range); r <= std::min(range, -q + range); r++) {
+            int s = -q - r; // Calculate s from q + r + s = 0
+            Hexagon::CubeCoord coord(q + center.q, r + center.r, s + center.s);
+            
+            // Check if this hex exists in our grid
+            if (mHexagons.find(coord) != mHexagons.end()) {
+                // Make sure it's actually within the range (Manhattan distance in cube coordinates)
+                if (Hexagon::distance(center, coord) <= range) {
+                    result.push_back(mHexagons[coord].get());
+                }
+            }
+        }
+    }
+    
+    return result;
+}
+
+// Convert pixel coordinates to cube coordinates
+Hexagon::CubeCoord HexGrid::pixelToCube(const sf::Vector2f& pixel) const {
+    return Hexagon::pixelToCube(pixel, mHexSize);
+}
+
+// Reset visibility for all hexes
+void HexGrid::resetVisibility() {
+    for (auto& [coord, hex] : mHexagons) {
+        hex->setVisible(false);
+    }
+}
+
+// Get all hexes
+std::vector<Hexagon*> HexGrid::getAllHexes() {
+    std::vector<Hexagon*> result;
+    result.reserve(mHexagons.size());
+    
+    for (auto& [coord, hex] : mHexagons) {
+        result.push_back(hex.get());
+    }
+    
+    return result;
 } 

@@ -4,6 +4,7 @@
 #include <SFML/Graphics.hpp>
 #include <array>
 #include <optional>
+#include <memory>
 #include "Building.h"
 
 // Forward declarations
@@ -50,10 +51,15 @@ public:
     void setOutlineColor(const sf::Color& color);
     void setOutlineThickness(float thickness);
     void setPosition(const sf::Vector2f& position);
+    
+    // We take raw pointers but don't own them - the owner manages lifetime
     void setBuilding(Building* building);
     void setCharacter(Character* character);
+    
+    // Return non-owning pointers
     Building* getBuilding() const;
     Character* getCharacter() const;
+    
     void removeBuilding();
     void removeCharacter();
     bool hasCharacter() const;
@@ -81,15 +87,30 @@ public:
     void highlight(const sf::Color& color);
     void removeHighlight();
     
+    // Visibility methods
+    bool isVisible() const { return mIsVisible; }
+    void setVisible(bool visible) { mIsVisible = visible; }
+    
+    bool isExplored() const { return mIsExplored; }
+    void setExplored(bool explored) { mIsExplored = explored; }
+    
 private:
     CubeCoord mCoord;
     sf::ConvexShape mShape;
     static constexpr float SIZE = 25.0f; // Smaller size for a better fit
+    
+    // Use optional pointers - these are non-owning references
     std::optional<Building*> mBuilding;
     std::optional<Character*> mCharacter;
+    
     sf::Color color;            // Base/permanent color
     bool isHighlighted;         // Tracking if currently highlighted
     sf::Color highlightColor;   // Current highlight color if any
+    
+    // Visibility state
+    bool mIsVisible = false;    // Currently visible
+    bool mIsExplored = false;   // Has been seen before
+    
     void createHexagonShape();
 };
 

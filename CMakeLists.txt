@@ -30,7 +30,15 @@ add_executable(CPPGame
     src/business/Resource.cpp
     src/business/Proffesion.cpp
     src/business/workplaces/OilRefinery.cpp
+    src/VisibilitySystem.cpp
 )
 
 # Link SFML libraries
-target_link_libraries(CPPGame SFML::Graphics SFML::Window SFML::System SFML::Audio) 
+target_link_libraries(CPPGame SFML::Graphics SFML::Window SFML::System SFML::Audio)
+
+# Copy assets to build directory
+add_custom_command(TARGET CPPGame POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    ${CMAKE_SOURCE_DIR}/assets
+    ${CMAKE_BINARY_DIR}/assets
+) 

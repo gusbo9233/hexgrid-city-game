@@ -63,6 +63,18 @@ public:
     // Highlight adjacent hexes
     void highlightAdjacentHexes(const Hexagon::CubeCoord& coord, sf::Color color);
     
+    // Get all hexes within a certain range of a center hex
+    std::vector<Hexagon*> getHexesInRange(const Hexagon::CubeCoord& center, int range);
+    
+    // Convert pixel coordinates to cube coordinates
+    Hexagon::CubeCoord pixelToCube(const sf::Vector2f& pixel) const;
+    
+    // Reset visibility for all hexes
+    void resetVisibility();
+    
+    // Get all hexes (for visibility calculations)
+    std::vector<Hexagon*> getAllHexes();
+    
 private:
     std::unordered_map<Hexagon::CubeCoord, std::unique_ptr<Hexagon>> mHexagons;
     const float mHexSize = 25.0f; // Make this match the SIZE in Hexagon.h

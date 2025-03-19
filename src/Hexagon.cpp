@@ -75,7 +75,13 @@ Hexagon::CubeCoord Hexagon::getCoord() const {
 }
 
 void Hexagon::draw(sf::RenderWindow& window) const {
+    // Draw the hexagon shape
     window.draw(mShape);
+    
+    // If there's a building on this hex, draw it too
+    if (mBuilding.has_value() && *mBuilding) {
+        (*mBuilding)->draw(window);
+    }
 }
 
 // Pointy-top hexagon layout
@@ -126,7 +132,7 @@ void Hexagon::setBuilding(Building* building) {
     if (!mBuilding.has_value()) {
         mBuilding = building;
         if (building) {
-            // Update the building's position to match this hex
+            // Update the building's position to match this hex's center
             building->setPosition(mShape.getPosition());
         }
     }

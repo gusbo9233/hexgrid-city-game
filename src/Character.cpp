@@ -44,7 +44,15 @@ void Character::setPosition(const sf::Vector2f& pixelPos) {
     }
 }
 
+// NVI pattern implementation for render
 void Character::render(sf::RenderWindow& window) const {
+    // Common pre-rendering operations could go here
+    doRender(window);
+    // Common post-rendering operations could go here
+}
+
+// Default implementation of doRender
+void Character::doRender(sf::RenderWindow& window) const {
     // Only draw if we have a valid sprite
     if (mSprite) {
         window.draw(*mSprite);

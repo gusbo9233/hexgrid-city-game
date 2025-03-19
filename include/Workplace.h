@@ -1,3 +1,4 @@
+#ifndef WORKPLACE_H
 #define WORKPLACE_H
 
 #include "Building.h"
@@ -13,6 +14,10 @@ class Workplace : public Building {
         ~Workplace();
         void addEmployee(Individual* employee);
         void removeEmployee(Individual* employee);
+        
+        // Implement type identification
+        BuildingType getType() const override { return BuildingType::Workplace; }
+        
     private:
         std::string name;
         Profession* profession;
@@ -22,3 +27,5 @@ class Workplace : public Building {
         Product* product;
         std::vector<Resource*> availableResources;
 };
+
+#endif

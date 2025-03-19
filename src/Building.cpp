@@ -27,13 +27,14 @@ void Building::initializeShape() {
     
     if (mHasTexture && mTexture) {
         mShape.setTexture(mTexture.get());
+        // No outline for textured buildings
+        mShape.setOutlineThickness(0.f);
     } else {
-        // Fallback to colored square
+        // Fallback to colored square with outline
         mShape.setFillColor(sf::Color(200, 200, 200));
+        mShape.setOutlineThickness(2.f);
+        mShape.setOutlineColor(sf::Color::Black);
     }
-    
-    mShape.setOutlineThickness(2.f);
-    mShape.setOutlineColor(sf::Color::Black);
     
     // Center the shape on its position
     sf::FloatRect bounds = mShape.getLocalBounds();
@@ -55,6 +56,14 @@ void Building::setPosition(const sf::Vector2f& position) {
     mShape.setPosition(mPosition);
 }
 
+// Non-Virtual Interface (NVI) pattern implementation
 void Building::draw(sf::RenderWindow& window) const {
+    // Common pre-processing could go here
+    doDraw(window);
+    // Common post-processing could go here
+}
+
+// Default implementation of doDraw
+void Building::doDraw(sf::RenderWindow& window) const {
     window.draw(mShape);
 } 
