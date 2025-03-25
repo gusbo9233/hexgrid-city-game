@@ -1,8 +1,10 @@
-#include "Game.h"
-#include "Soldier.h"
+#include "../include/Game.h"
+#include "../include/characters/Soldier.h"
 #include <cmath>
 #include <algorithm>
-#include "City.h"
+#include "../include/buildings/City.h"
+#include "../include/graphics/GridFiller.h"
+#include "../include/resources/Resource.h"
 Game::Game() 
     : mWindow(sf::VideoMode({1200, 800}), "Hexagonal Grid - WASD to move, Q/R to highlight axes"), 
       mDeltaTime(0.f),
@@ -24,25 +26,41 @@ Game::Game()
     // Calculate the grid bounds for camera limits
     mGridBounds = mGrid.getBounds();
     
-    // Get the center hex
-    Hexagon* centerHex = mGrid.getHexAt({0, 0, 0});
-    if (centerHex) {
-        // Create a soldier at the center hex coordinates (0,0,0) with unique_ptr
-        mSoldier = std::make_unique<Soldier>(0, 0);
+    // Use GridFiller to populate the grid with cities and resources
+    GridFiller gridFiller(mGrid);
+    gridFiller.fillGrid();
+    mCities = gridFiller.getCities();
+    mResources = gridFiller.getResources(); // Take ownership of resources
+    
+    // Starting position for soldier in bottom half of map (positive r value)
+    Hexagon::CubeCoord soldierStartPos = {2, 5, -7};
+    
+    // Get the hex at the bottom half coordinate
+    Hexagon* startHex = mGrid.getHexAt(soldierStartPos);
+    if (startHex) {
+        // Create a soldier at the bottom half coordinate with unique_ptr
+        mSoldier = std::make_unique<Soldier>(soldierStartPos.q, soldierStartPos.r);
         
         // Set the soldier in the hex and highlight it
-        centerHex->setCharacter(mSoldier.get());
+        startHex->setCharacter(mSoldier.get());
         
         // Position the soldier's sprite at the hex's pixel position
-        mSoldier->setPosition(centerHex->getPosition());
+        mSoldier->setPosition(startHex->getPosition());
     } else {
-        // Fallback: create at origin if center hex not found
+        // Fallback: create at origin if hex not found
         mSoldier = std::make_unique<Soldier>(0, 0);
     }
     mSelectedCharacter = nullptr;
     
-    // Generate city positions
-    generateCityHexesPositions();
+    // Center camera on soldier position
+    if (startHex) {
+        mCameraPosition = startHex->getPosition();
+        mCamera.setCenter(mCameraPosition);
+        mWindow.setView(mCamera);
+        mRenderer.setView(mCamera);
+    }
+    
+    // No need to call generateCityHexesPositions() anymore since GridFiller handles it
 }
 
 // Add destructor to clean up memory
@@ -114,6 +132,15 @@ void Game::onLeftClick(const sf::Vector2f& worldPos) {
                 // Default building highlight
                 hex->highlight(sf::Color(255, 200, 0)); // Gold
             }
+            
+            // No character selection
+            mSelectedCharacter = std::nullopt;
+        }
+        else if (hex->hasResource()) {
+            Resource* resource = hex->getResource();
+            
+            // Highlight resource hex in purple
+            hex->highlight(sf::Color(160, 32, 240)); // Purple
             
             // No character selection
             mSelectedCharacter = std::nullopt;
@@ -303,85 +330,6 @@ void Game::highlightAxis(HighlightAxis axis) {
             break;
     }
 } 
-
-void Game::generateCityHexesPositions() {
-    // Create vectors to store the hexes for each city
-    std::vector<Hexagon*> city1Hexes;
-    std::vector<Hexagon*> city2Hexes;
-    std::vector<Hexagon*> city3Hexes;
-    
-    // Define city sizes (number of hexes per city)
-    const int city1Size = 7;
-    const int city2Size = 5;
-    const int city3Size = 6;
-    
-    // Define seed positions for cities in the bottom half of the grid (positive r)
-    // We'll use different quadrants to keep cities separated
-    Hexagon::CubeCoord city1Seed(5, 5, -10);   // Bottom right
-    Hexagon::CubeCoord city2Seed(-8, 10, -2);  // Bottom left
-    Hexagon::CubeCoord city3Seed(-2, 8, -6);   // Bottom center
-    
-    // Helper function to grow a city from a seed
-    auto growCity = [this](Hexagon::CubeCoord seed, int size, std::vector<Hexagon*>& cityHexes) {
-        // Get the seed hex
-        Hexagon* seedHex = mGrid.getHexAt(seed);
-        if (!seedHex) return;
-        
-        // Start with the seed
-        cityHexes.push_back(seedHex);
-        
-        // Use a breadth-first approach to add adjacent hexes
-        std::vector<Hexagon*> frontier = {seedHex};
-        std::vector<Hexagon*> nextFrontier;
-        
-        while (cityHexes.size() < size && !frontier.empty()) {
-            nextFrontier.clear();
-            
-            for (const auto& current : frontier) {
-                // Check all six directions
-                for (const auto& dir : Hexagon::directions) {
-                    Hexagon::CubeCoord neighborCoord = current->getCoord() + dir;
-                    
-                    // Check if the hex is valid and not already in city
-                    Hexagon* neighborHex = mGrid.getHexAt(neighborCoord);
-                    if (neighborHex && 
-                        std::find(cityHexes.begin(), cityHexes.end(), neighborHex) == cityHexes.end()) {
-                        
-                        // Add to city if we haven't reached the size limit
-                        if (cityHexes.size() < size) {
-                            cityHexes.push_back(neighborHex);
-                            nextFrontier.push_back(neighborHex);
-                        } else {
-                            break;
-                        }
-                    }
-                }
-            }
-            
-            frontier = nextFrontier;
-        }
-    };
-    
-    // Grow each city from its seed
-    growCity(city1Seed, city1Size, city1Hexes);
-    growCity(city2Seed, city2Size, city2Hexes);
-    growCity(city3Seed, city3Size, city3Hexes);
-    
-    // Define unique, visually distinct colors for each city (more greyish)
-    sf::Color city1Color(144, 131, 131); // Muted reddish-grey
-    sf::Color city2Color(140, 170, 140); // Muted greenish-grey
-    sf::Color city3Color(140, 140, 180); // Muted bluish-grey
-    
-    // Create city objects with their unique colors using unique_ptr
-    auto city1 = std::make_unique<City>(city1Hexes, city1Color);
-    auto city2 = std::make_unique<City>(city2Hexes, city2Color);
-    auto city3 = std::make_unique<City>(city3Hexes, city3Color);
-    
-    // Add cities to the game's collection
-    mCities.push_back(std::move(city1));
-    mCities.push_back(std::move(city2));
-    mCities.push_back(std::move(city3));
-}
 
 void Game::updateVisibility() {
     if (!mFogOfWarEnabled) {

@@ -1,12 +1,12 @@
 #ifndef WORKPLACE_H
 #define WORKPLACE_H
 
-#include "Building.h"
-#include "Proffesion.h"
-#include "Individual.h"
+#include "../../buildings/Building.h"
+#include "../Proffesion.h"
+#include "../../civilian/Individual.h"
 #include <vector>
-#include "Product.h"
-#include "ResourceType.h"
+#include "../Product.h"
+#include "../../resources/ResourceType.h"
 
 class Workplace : public Building {
     public:

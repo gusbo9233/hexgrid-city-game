@@ -1,18 +1,10 @@
-#include "../../include/Soldier.h"
+#include "../../include/characters/Soldier.h"
 #include <iostream>
 
 Soldier::Soldier(int q, int r) : Character(q, r) {
+    // Load texture from file
     loadTexture(SOLDIER_TEXTURE);
     setVisibilityRange(SOLDIER_VISIBILITY_RANGE);
-}
-
-// Implement doRender if needed with soldier-specific rendering
-void Soldier::doRender(sf::RenderWindow& window) const {
-    // Call the base implementation which handles sprite drawing
-    Character::doRender(window);
-    
-    // Add soldier-specific rendering here if needed
-    // For example, could draw health bar, status effects, etc.
 }
 
 // Basic attack implementation

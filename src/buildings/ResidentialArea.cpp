@@ -1,4 +1,4 @@
-#include "ResidentialArea.h"
+#include "../../include/buildings/ResidentialArea.h"
 
 ResidentialArea::ResidentialArea() : Building({0, 0}) {
     // Initialize the residential area with default values

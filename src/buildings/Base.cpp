@@ -1,5 +1,5 @@
 //base
-#include "../include/Base.h"
+#include "../../include/buildings/Base.h"
 
 Base::Base(Hexagon* hexagon) 
     : Building(hexagon->getPosition()) {

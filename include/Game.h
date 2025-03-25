@@ -5,12 +5,13 @@
 #include <optional>
 #include <vector>
 #include <memory>
-#include "HexGrid.h"
+#include "graphics/HexGrid.h"
 #include "InputHandler.h"
-#include "Renderer.h"
-#include "Soldier.h"
-#include "City.h"
-#include "VisibilitySystem.h"
+#include "graphics/Renderer.h"
+#include "characters/Soldier.h"
+#include "buildings/City.h"
+#include "graphics/VisibilitySystem.h"
+#include "resources/Resource.h"
 
 class Game {
 public:
@@ -58,8 +59,11 @@ private:
     // This is a non-owning reference, so keep as raw pointer
     std::optional<Character*> mSelectedCharacter;
     
-    // Use unique_ptr for owned cities
+    // Store cities for the game
     std::vector<std::unique_ptr<City>> mCities;
+    
+    // Store resources for the game with proper ownership
+    std::vector<std::unique_ptr<Resource>> mResources;
     
     // Toggle for fog of war
     bool mFogOfWarEnabled = true;

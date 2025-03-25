@@ -1,26 +1,17 @@
-#include "../include/City.h"
-#include "CityCenter.h"
+#include "../include/buildings/City.h"
+#include "../include/buildings/CityCenter.h"
 #include <algorithm>
 #include <cmath>
 #include <limits>
 
-City::City(std::vector<Hexagon*> cityHexes, const sf::Color& cityColor) 
-    : cityHexes(cityHexes), color(cityColor) {
+City::City(std::vector<Hexagon*> cityHexes, Allegiance allegiance) 
+    : cityHexes(cityHexes), mAllegiance(allegiance)
+{
     generateBuildings();
-    updateHexColors();
 }
 
-// Empty destructor implementation - unique_ptr handles cleanup automatically
 City::~City() {
     // Smart pointers handle cleanup automatically
-}
-
-void City::updateHexColors() {
-    for (auto* hex : cityHexes) {
-        if (hex) {
-            hex->setBaseColor(color);
-        }
-    }
 }
 
 void City::generateBuildings() {
@@ -63,7 +54,7 @@ void City::generateBuildings() {
     // Place a CityCenter on the center hex
     if (centerHex) {
         // Create a new CityCenter with a unique_ptr
-        auto cityCenter = std::make_unique<CityCenter>(centerHex->getPosition());
+        auto cityCenter = std::make_unique<CityCenter>(centerHex->getPosition(), mAllegiance);
         
         // Add the building to the hex - need raw pointer for this API
         centerHex->setBuilding(cityCenter.get());

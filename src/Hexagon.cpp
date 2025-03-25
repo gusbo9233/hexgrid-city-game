@@ -1,5 +1,6 @@
-#include "Hexagon.h"
-#include "Character.h"
+#include "../include/Hexagon.h"
+#include "../include/characters/Character.h"
+#include "../include/resources/Resource.h"
 #include <cmath>
 
 // Initialize directions in cube coordinates
@@ -81,6 +82,10 @@ void Hexagon::draw(sf::RenderWindow& window) const {
     // If there's a building on this hex, draw it too
     if (mBuilding.has_value() && *mBuilding) {
         (*mBuilding)->draw(window);
+    }
+
+    if (mResource.has_value() && *mResource) {
+        (*mResource)->render(window);
     }
 }
 
@@ -199,4 +204,27 @@ void Hexagon::highlight(const sf::Color& hColor) {
 void Hexagon::removeHighlight() {
     isHighlighted = false;
     mShape.setFillColor(color);
+}
+
+// Resource methods
+void Hexagon::setResource(Resource* resource) {
+    if (!mResource.has_value()) {
+        mResource = resource;
+        if (resource) {
+            // Update the resource's position to match this hex's center
+            resource->setPosition(mShape.getPosition());
+        }
+    }
+}
+
+Resource* Hexagon::getResource() const {
+    return mResource.value_or(nullptr);
+}
+
+void Hexagon::removeResource() {
+    mResource.reset();
+}
+
+bool Hexagon::hasResource() const {
+    return mResource.has_value() && *mResource != nullptr;
 }

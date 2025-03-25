@@ -5,10 +5,19 @@
 #include <array>
 #include <optional>
 #include <memory>
-#include "Building.h"
+#include "buildings/Building.h"
 
 // Forward declarations
 class Character;
+class Resource;
+
+//terrain types
+enum class TerrainType {
+    PLAINS,
+    WATER,
+    FOREST,
+    URBAN
+};
 
 class Hexagon {
 public:
@@ -55,14 +64,20 @@ public:
     // We take raw pointers but don't own them - the owner manages lifetime
     void setBuilding(Building* building);
     void setCharacter(Character* character);
+    void setResource(Resource* resource);
     
     // Return non-owning pointers
     Building* getBuilding() const;
     Character* getCharacter() const;
+    Resource* getResource() const;
     
     void removeBuilding();
     void removeCharacter();
+    void removeResource();
+    
     bool hasCharacter() const;
+    bool hasResource() const;
+    
     sf::Vector2f getPosition() const;
     
     CubeCoord getCoord() const;
@@ -94,6 +109,9 @@ public:
     bool isExplored() const { return mIsExplored; }
     void setExplored(bool explored) { mIsExplored = explored; }
     
+    TerrainType getTerrainType() const { return mTerrainType; }
+    void setTerrainType(TerrainType type) { mTerrainType = type; }
+    
 private:
     CubeCoord mCoord;
     sf::ConvexShape mShape;
@@ -102,16 +120,18 @@ private:
     // Use optional pointers - these are non-owning references
     std::optional<Building*> mBuilding;
     std::optional<Character*> mCharacter;
+    std::optional<Resource*> mResource;
     
     sf::Color color;            // Base/permanent color
     bool isHighlighted;         // Tracking if currently highlighted
     sf::Color highlightColor;   // Current highlight color if any
-    
+    TerrainType mTerrainType;
     // Visibility state
     bool mIsVisible = false;    // Currently visible
     bool mIsExplored = false;   // Has been seen before
     
     void createHexagonShape();
+
 };
 
 #endif // HEXAGON_H 

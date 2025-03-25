@@ -1,4 +1,4 @@
-#include "Product.h"
+#include "../../include/business/Product.h"
 
 Product::Product() : price(0), demand(0), supply(0) {
     name = "Default Product";
