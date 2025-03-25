@@ -7,7 +7,11 @@
 
 class OilRefinery : public Workplace {
     public:
-        OilRefinery();
+        OilRefinery() : Workplace() {
+            // Initialize the oil refinery with default values
+            setVisibilityRange(3); // Oil refineries can see further
+            initializeShape();
+        }
         OilRefinery(const sf::Vector2f& position);
         ~OilRefinery();
         
@@ -16,5 +20,11 @@ class OilRefinery : public Workplace {
         
         // Override the type identification from Workplace
         BuildingType getType() const override { return BuildingType::OilRefinery; }
+
+        std::string getImagePath() const override { return "assets/images/OilRefinery.png"; }
+        
+        // Implement the pure virtual methods from Building
+        float getScaleFactor() const override;
+        sf::Vector2f getSize() const override;
 };
 #endif

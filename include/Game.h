@@ -10,6 +10,7 @@
 #include "graphics/Renderer.h"
 #include "characters/Soldier.h"
 #include "buildings/City.h"
+#include "buildings/Building.h"
 #include "graphics/VisibilitySystem.h"
 #include "resources/Resource.h"
 
@@ -64,6 +65,9 @@ private:
     
     // Store resources for the game with proper ownership
     std::vector<std::unique_ptr<Resource>> mResources;
+    
+    // Store standalone buildings (like oil refineries) with proper ownership
+    std::vector<std::unique_ptr<Building>> mBuildings;
     
     // Toggle for fog of war
     bool mFogOfWarEnabled = true;

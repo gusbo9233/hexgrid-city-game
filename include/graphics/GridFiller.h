@@ -8,6 +8,7 @@
 #include "../buildings/City.h"
 #include "../resources/Resource.h"
 #include "../Allegiance.h"
+#include "../buildings/Building.h"
 
 class GridFiller {
 public:
@@ -23,6 +24,9 @@ public:
     // Transfer ownership of resources to the caller
     std::vector<std::unique_ptr<Resource>> getResources();
     
+    // Transfer ownership of buildings to the caller
+    std::vector<std::unique_ptr<Building>> getBuildings();
+    
     // Generate cities on the grid with specified allegiance
     void generateCities(Allegiance allegiance);
     
@@ -35,7 +39,9 @@ private:
 
     HexGrid& mGrid;
     std::vector<std::unique_ptr<City>> mCities;
-    std::vector<std::unique_ptr<Resource>> mResources; // Store resources with proper ownership
+    std::vector<std::unique_ptr<Resource>> mResources;
+    std::vector<std::unique_ptr<Building>> mBuildings;
+    void generateOilRefinery(Allegiance allegiance);
 };
 
 #endif // GRID_FILLER_H 

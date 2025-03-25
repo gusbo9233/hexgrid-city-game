@@ -22,6 +22,9 @@ class Workplace : public Building {
         // Implement type identification
         BuildingType getType() const override { return BuildingType::Workplace; }
         
+        // Default implementation of the required pure virtual method from Building
+        float getScaleFactor() const override { return 0.7f; }
+        
     protected:
         std::string name;
         Profession* profession;

@@ -31,6 +31,7 @@ Game::Game()
     gridFiller.fillGrid();
     mCities = gridFiller.getCities();
     mResources = gridFiller.getResources(); // Take ownership of resources
+    mBuildings = gridFiller.getBuildings(); // Take ownership of buildings like oil refineries
     
     // Starting position for soldier in bottom half of map (positive r value)
     Hexagon::CubeCoord soldierStartPos = {2, 5, -7};
@@ -385,7 +386,10 @@ std::vector<Building*> Game::getBuildings() const {
         }
     }
     
-    // Add any standalone buildings here
+    // Add standalone buildings (like oil refineries)
+    for (const auto& building : mBuildings) {
+        buildings.push_back(building.get());
+    }
     
     return buildings;
 }
