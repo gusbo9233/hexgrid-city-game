@@ -7,6 +7,7 @@
 #include <vector>
 #include "../Product.h"
 #include "../../resources/ResourceType.h"
+#include <tuple>
 
 class Workplace : public Building {
     public:
@@ -24,6 +25,11 @@ class Workplace : public Building {
         
         // Default implementation of the required pure virtual method from Building
         float getScaleFactor() const override { return 0.7f; }
+
+        // Get produced product type and amount
+        std::tuple<Product, int> generateProduct() const {
+            return std::make_tuple(productType, 1);
+        }
         
     protected:
         std::string name;
@@ -31,7 +37,7 @@ class Workplace : public Building {
         int maxEmployees;
         std::vector<Individual*> employees;
         int currentEmployees;
-        Product* product;
+        Product productType; // Now using Product enum instead of pointer
         
         // Using ResourceType instead
         std::vector<ResourceType> availableResourceTypes;

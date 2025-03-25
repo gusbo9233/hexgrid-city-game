@@ -345,30 +345,6 @@ src/buildings/ResidentialArea.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/CPPGame.dir/build.make CMakeFiles/CPPGame.dir/src/buildings/ResidentialArea.cpp.s
 .PHONY : src/buildings/ResidentialArea.cpp.s
 
-src/business/Product.o: src/business/Product.cpp.o
-.PHONY : src/business/Product.o
-
-# target to build an object file
-src/business/Product.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/CPPGame.dir/build.make CMakeFiles/CPPGame.dir/src/business/Product.cpp.o
-.PHONY : src/business/Product.cpp.o
-
-src/business/Product.i: src/business/Product.cpp.i
-.PHONY : src/business/Product.i
-
-# target to preprocess a source file
-src/business/Product.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/CPPGame.dir/build.make CMakeFiles/CPPGame.dir/src/business/Product.cpp.i
-.PHONY : src/business/Product.cpp.i
-
-src/business/Product.s: src/business/Product.cpp.s
-.PHONY : src/business/Product.s
-
-# target to generate assembly for a file
-src/business/Product.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/CPPGame.dir/build.make CMakeFiles/CPPGame.dir/src/business/Product.cpp.s
-.PHONY : src/business/Product.cpp.s
-
 src/business/Proffesion.o: src/business/Proffesion.cpp.o
 .PHONY : src/business/Proffesion.o
 
@@ -717,9 +693,6 @@ help:
 	@echo "... src/buildings/ResidentialArea.o"
 	@echo "... src/buildings/ResidentialArea.i"
 	@echo "... src/buildings/ResidentialArea.s"
-	@echo "... src/business/Product.o"
-	@echo "... src/business/Product.i"
-	@echo "... src/business/Product.s"
 	@echo "... src/business/Proffesion.o"
 	@echo "... src/business/Proffesion.i"
 	@echo "... src/business/Proffesion.s"

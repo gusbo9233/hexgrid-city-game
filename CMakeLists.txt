@@ -31,7 +31,6 @@ add_executable(CPPGame
     
     # Business files
     src/business/workplaces/Workplace.cpp
-    src/business/Product.cpp
     src/business/Proffesion.cpp
     src/business/workplaces/OilRefinery.cpp
     

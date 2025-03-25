@@ -238,7 +238,7 @@ void GridFiller::generateOilRefinery(Allegiance allegiance) {
     std::cout << "GridFiller::generateOilRefinery() start for " << side << std::endl;
     
     // Find suitable hexes with oil resources in the appropriate half
-    std::vector<Hexagon*> suitableHexes;
+    std::vector<Hexagon*> oilHexes;
     auto allHexes = mGrid.getAllHexes();
     
     std::cout << "Total hexes to check: " << allHexes.size() << std::endl;
@@ -265,78 +265,39 @@ void GridFiller::generateOilRefinery(Allegiance allegiance) {
                                      (allegiance == Allegiance::ENEMY && hex->getCoord().r < 0);
                 
                 if (isCorrectHalf) {
-                    // Check if there's an empty adjacent hex for the refinery
-                    auto adjacentHexes = mGrid.getAdjacentHexes(hex->getCoord());
-                    for (const auto& adjCoord : adjacentHexes) {
-                        Hexagon* adjHex = mGrid.getHexAt(adjCoord);
-                        if (adjHex && !adjHex->hasBuilding() && !adjHex->hasCharacter() && !adjHex->hasResource()) {
-                            // This oil resource has an empty adjacent hex - it's suitable
-                            suitableHexes.push_back(hex);
-                            break;
-                        }
-                    }
+                    // This hex has oil and is in the correct half - it's suitable
+                    oilHexes.push_back(hex);
                 }
             }
         }
     }
     
-    std::cout << "Oil hexes found: " << oilHexesFound << ", suitable hexes for refinery: " << suitableHexes.size() << std::endl;
+    std::cout << "Oil hexes found: " << oilHexesFound << ", suitable oil hexes: " << oilHexes.size() << std::endl;
     
-    if (suitableHexes.empty()) {
-        std::cout << "No suitable locations found for oil refinery in " << side << " territory" << std::endl;
+    if (oilHexes.empty()) {
+        std::cout << "No suitable oil hexes found in " << side << " territory" << std::endl;
         return;
     }
     
-    // Pick a random suitable hex for the oil refinery
+    // Pick a random oil hex for the refinery
     std::random_device rd;
     std::mt19937 gen(rd());
-    std::uniform_int_distribution<> distrib(0, suitableHexes.size() - 1);
-    Hexagon* selectedOilHex = suitableHexes[distrib(gen)];
+    std::uniform_int_distribution<> distrib(0, oilHexes.size() - 1);
+    Hexagon* selectedOilHex = oilHexes[distrib(gen)];
     
     std::cout << "Selected oil hex at coordinates (" 
               << selectedOilHex->getCoord().q << "," 
               << selectedOilHex->getCoord().r << "," 
               << selectedOilHex->getCoord().s << ")" << std::endl;
     
-    // Find an empty adjacent hex for the oil refinery
-    auto adjacentHexes = mGrid.getAdjacentHexes(selectedOilHex->getCoord());
-    std::vector<Hexagon*> emptyAdjacentHexes;
+    // Get the position of the hex
+    sf::Vector2f position = selectedOilHex->getPosition();
     
-    std::cout << "Adjacent hexes count: " << adjacentHexes.size() << std::endl;
+    std::cout << "About to create OilRefinery on oil hex..." << std::endl;
     
-    for (const auto& adjCoord : adjacentHexes) {
-        Hexagon* adjHex = mGrid.getHexAt(adjCoord);
-        if (adjHex && !adjHex->hasBuilding() && !adjHex->hasCharacter() && !adjHex->hasResource()) {
-            emptyAdjacentHexes.push_back(adjHex);
-        }
-    }
-    
-    std::cout << "Empty adjacent hexes: " << emptyAdjacentHexes.size() << std::endl;
-    
-    if (emptyAdjacentHexes.empty()) {
-        std::cout << "Error: No empty adjacent hexes found for oil refinery" << std::endl;
-        return;
-    }
-    
-    // Pick a random empty adjacent hex
-    std::uniform_int_distribution<> adjDistrib(0, emptyAdjacentHexes.size() - 1);
-    Hexagon* refineryHex = emptyAdjacentHexes[adjDistrib(gen)];
-    
-    std::cout << "Selected refinery hex at coordinates (" 
-              << refineryHex->getCoord().q << "," 
-              << refineryHex->getCoord().r << "," 
-              << refineryHex->getCoord().s << ")" << std::endl;
-    
-    std::cout << "About to create OilRefinery..." << std::endl;
-    
-    // Create and place the oil refinery
+    // Create and place the oil refinery directly on the oil hex
     try {
-        // Create the OilRefinery on the stack first to see if it works
-        OilRefinery stackRefinery(refineryHex->getPosition());
-        std::cout << "Stack-based OilRefinery created successfully!" << std::endl;
-        
-        // Now try with make_unique
-        auto oilRefinery = std::make_unique<OilRefinery>(refineryHex->getPosition());
+        auto oilRefinery = std::make_unique<OilRefinery>(position);
         
         std::cout << "OilRefinery created successfully!" << std::endl;
         
@@ -344,14 +305,14 @@ void GridFiller::generateOilRefinery(Allegiance allegiance) {
         oilRefinery->setAllegiance(allegiance);
         
         // Set the building in the hex
-        refineryHex->setBuilding(oilRefinery.get());
+        selectedOilHex->setBuilding(oilRefinery.get());
         
         // Store in our collection
         mBuildings.push_back(std::move(oilRefinery));
         
         std::cout << "Created oil refinery in " << side << " territory at (" 
-                  << refineryHex->getCoord().q << "," << refineryHex->getCoord().r << "," 
-                  << refineryHex->getCoord().s << ")" << std::endl;
+                  << selectedOilHex->getCoord().q << "," << selectedOilHex->getCoord().r << "," 
+                  << selectedOilHex->getCoord().s << ")" << std::endl;
     } catch (const std::exception& e) {
         std::cout << "Exception creating OilRefinery: " << e.what() << std::endl;
     } catch (...) {

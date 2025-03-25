@@ -2,14 +2,14 @@
 #include <algorithm> // For std::find
 
 Workplace::Workplace() : Building({0, 0}), maxEmployees(10), currentEmployees(0), 
-                         profession(nullptr), product(nullptr) {
+                         profession(nullptr), productType(FOOD) {
     name = "Default Workplace";
     initializeShape();
 }
 
 Workplace::Workplace(const sf::Vector2f& position) : Building(position), maxEmployees(10), 
                                                     currentEmployees(0), profession(nullptr), 
-                                                    product(nullptr) {
+                                                    productType(FOOD) {
     name = "Default Workplace";
     initializeShape();
 }
