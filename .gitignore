@@ -30,18 +30,45 @@
 *.exe
 *.out
 *.app
+CPPGame
 
-# Build directories
+# Build directories and artifacts
 build/
 CMakeFiles/
 CMakeCache.txt
 cmake_install.cmake
+Makefile
+*.cmake
+!CMakeLists.txt
+Testing/
+DartConfiguration.tcl
+compile_commands.json
 
 # IDE files
 .vscode/
 .idea/
 *.swp
 *~
+.vs/
+*.user
+*.suo
+*.VC.db
+*.VC.opendb
+xcuserdata/
+*.xcworkspace/
+*.sublime-*
 
 # Mac specific
-.DS_Store 
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+
+# Temporary files
+*.log
+core
+core.*
+
+# Custom executables not part of the build system
+sfml_image_creator 
