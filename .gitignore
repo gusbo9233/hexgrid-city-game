@@ -70,5 +70,11 @@ Icon
 core
 core.*
 
-# Custom executables not part of the build system
-sfml_image_creator 
+# Project-specific files to exclude
+sfml_image_creator
+sfml_image_creator.cpp
+cppguide.md
+cppguide.tex
+
+# Optional - exclude test files if you don't want them in git
+# tests/ 
