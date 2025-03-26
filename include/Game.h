@@ -13,7 +13,10 @@
 #include "buildings/Building.h"
 #include "graphics/VisibilitySystem.h"
 #include "resources/Resource.h"
-
+#include "economy/NationalAccounts.h"
+#include "economy/InternationalMarkets.h"
+#include "economy/EconomicPolicy.h"
+#include "economy/Government.h"
 class Game {
 public:
     enum class HighlightAxis {
@@ -92,6 +95,12 @@ private:
     
     // Get all buildings for visibility calculations
     std::vector<Building*> getBuildings() const;
+
+    void generateProducts();
+    NationalAccounts mNationalAccounts;
+    InternationalMarkets mInternationalMarkets;
+    EconomicPolicy mEconomicPolicy;
+    Government mGovernment;
 };
 
 #endif // GAME_H 

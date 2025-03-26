@@ -35,3 +35,12 @@ void Workplace::removeEmployee(Individual* employee) {
         }
     }
 }
+
+bool Workplace::sellProduct(Product product, int amount, double price) {
+    if (stock >= amount && stock > minStock) {
+        money += amount * price;
+        stock -= amount;
+        return true;
+    }
+    return false;
+}

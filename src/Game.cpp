@@ -5,6 +5,8 @@
 #include "../include/buildings/City.h"
 #include "../include/graphics/GridFiller.h"
 #include "../include/resources/Resource.h"
+#include <Workplace.h>
+
 Game::Game() 
     : mWindow(sf::VideoMode({1200, 800}), "Hexagonal Grid - WASD to move, Q/R to highlight axes"), 
       mDeltaTime(0.f),
@@ -31,8 +33,11 @@ Game::Game()
     gridFiller.fillGrid();
     mCities = gridFiller.getCities();
     mResources = gridFiller.getResources(); // Take ownership of resources
-    mBuildings = gridFiller.getBuildings(); // Take ownership of buildings like oil refineries
-    
+    mBuildings = gridFiller.getBuildings();
+    mNationalAccounts = NationalAccounts();
+    mInternationalMarkets = InternationalMarkets();
+    mEconomicPolicy = EconomicPolicy();
+    mGovernment = Government();
     // Starting position for soldier in bottom half of map (positive r value)
     Hexagon::CubeCoord soldierStartPos = {2, 5, -7};
     
@@ -392,4 +397,21 @@ std::vector<Building*> Game::getBuildings() const {
     }
     
     return buildings;
+}
+
+void Game::generateProducts() {
+    std::vector<Building*> mBuildings = getBuildings();
+    for (const auto& building : mBuildings) {
+        if (building->isBuildingType(BuildingType::Workplace)) {
+            Workplace* workplace = dynamic_cast<Workplace*>(building);
+            workplace->generateProduct();
+            int sellPrice = mInternationalMarkets.getProductPrice(workplace->getProductType());
+            int taxAmount = sellPrice * mEconomicPolicy.getTaxRate();
+            bool soldProduct = workplace->sellProduct(workplace->getProductType(), 1, sellPrice - taxAmount);
+            if (soldProduct) {
+                mNationalAccounts.addMoney(sellPrice);
+                mGovernment.addMoney(taxAmount);
+            }
+        }
+    }
 }

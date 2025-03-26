@@ -27,9 +27,9 @@ class Workplace : public Building {
         float getScaleFactor() const override { return 0.7f; }
 
         // Get produced product type and amount
-        std::tuple<Product, int> generateProduct() const {
-            return std::make_tuple(productType, 1);
-        }
+        void generateProduct();
+        bool sellProduct(Product product, int amount, double price);
+        Product getProductType() const { return productType; }
         
     protected:
         std::string name;
@@ -38,9 +38,12 @@ class Workplace : public Building {
         std::vector<Individual*> employees;
         int currentEmployees;
         Product productType; // Now using Product enum instead of pointer
-        
+        double money;
         // Using ResourceType instead
         std::vector<ResourceType> availableResourceTypes;
+        int stock;
+        int minStock;
+
 };
 
 #endif
