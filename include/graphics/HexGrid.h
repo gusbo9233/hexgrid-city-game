@@ -73,10 +73,12 @@ public:
     void resetVisibility();
     
     // Get all hexes (for visibility calculations)
-    std::vector<Hexagon*> getAllHexes();
+    std::vector<Hexagon*> getAllHexes() const;
     
     // Get the color for a terrain type
     sf::Color getTerrainColor(TerrainType type);
+
+    
     
 private:
     std::unordered_map<Hexagon::CubeCoord, std::unique_ptr<Hexagon>> mHexagons;

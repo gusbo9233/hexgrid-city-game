@@ -1,7 +1,7 @@
 #ifndef INTERNATIONAL_MARKETS_H
 #define INTERNATIONAL_MARKETS_H
 
-#include "Product.h"
+#include "../business/Product.h"
 #include <map>
 
 class InternationalMarkets {

@@ -6,6 +6,7 @@
 #include "../../include/resources/Oil.h"
 #include "../../include/Allegiance.h"
 #include "../../include/business/workplaces/OilRefinery.h"
+#include "../../include/business/workplaces/Farm.h"
 
 GridFiller::GridFiller(HexGrid& grid) : mGrid(grid) {
     std::cout << "GridFiller constructor" << std::endl;
@@ -31,6 +32,10 @@ void GridFiller::fillGrid() {
     // Generate oil refineries for each allegiance
     generateOilRefinery(Allegiance::FRIENDLY);
     generateOilRefinery(Allegiance::ENEMY);
+    
+    // Generate farms for each allegiance
+    generateFarms(Allegiance::FRIENDLY);
+    generateFarms(Allegiance::ENEMY);
     
     std::cout << "GridFiller::fillGrid() complete, created " << mCities.size() << " cities" << std::endl;
 }
@@ -318,4 +323,59 @@ void GridFiller::generateOilRefinery(Allegiance allegiance) {
     } catch (...) {
         std::cout << "Unknown exception creating OilRefinery!" << std::endl;
     }
+}
+
+void GridFiller::generateFarms(Allegiance allegiance) {
+    std::string side = (allegiance == Allegiance::FRIENDLY) ? "friendly (bottom)" : "enemy (top)";
+    std::cout << "GridFiller::generateFarms() start for " << side << std::endl;
+    
+    // Number of farms to place
+    const int NUM_FARMS = 3;
+    
+    // Get all hexes
+    auto allHexes = mGrid.getAllHexes();
+    
+    // Filter empty hexes in correct half based on allegiance
+    std::vector<Hexagon*> emptyHexes;
+    for (auto hex : allHexes) {
+        if (!hex->hasBuilding() && !hex->hasCharacter() && !hex->hasResource()) {
+            // Choose hexes in proper territory based on allegiance
+            if ((allegiance == Allegiance::FRIENDLY && hex->getCoord().r > 0) ||
+                (allegiance == Allegiance::ENEMY && hex->getCoord().r < 0)) {
+                
+                // Only place farms on plains terrain
+                if (hex->getTerrainType() == TerrainType::PLAINS) {
+                    emptyHexes.push_back(hex);
+                }
+            }
+        }
+    }
+    
+    // Seed random number generator
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    
+    // Shuffle hexes to get random positions
+    std::shuffle(emptyHexes.begin(), emptyHexes.end(), gen);
+    
+    // Place farms
+    int farmsPlaced = 0;
+    for (auto hex : emptyHexes) {
+        if (farmsPlaced >= NUM_FARMS) break;
+        
+        // Create a farm
+        auto farm = std::make_unique<Farm>(hex->getPosition());
+        farm->setAllegiance(allegiance);
+        
+        // Place the farm on the hex
+        hex->setBuilding(farm.get());
+        
+        // Store the farm in the buildings collection
+        mBuildings.push_back(std::move(farm));
+        
+        farmsPlaced++;
+    }
+    
+    std::cout << "GridFiller::generateFarms() complete for " << side 
+              << ", placed " << farmsPlaced << " farms" << std::endl;
 }

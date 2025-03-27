@@ -37,6 +37,14 @@ class Building {
         // Visibility range methods
         int getVisibilityRange() const { return mVisibilityRange; }
         void setVisibilityRange(int range) { mVisibilityRange = range; }
+        
+        // Health and defenses methods
+        int getHealth() const { return health; }
+        int getDefenses() const { return defenses; }
+        int getMaxHealth() const { return maxHealth; }
+        int getMaxDefenses() const { return maxDefenses; }
+        void takeDamage(int damage);
+        void repair(int amount);
     
     protected:
         // Initialize the shape - should be called by subclasses after construction
@@ -66,6 +74,12 @@ class Building {
         
         // Default visibility range - can be overridden by specific building types
         int mVisibilityRange = 2;
+
+        // Health and defenses
+        int defenses = 100;
+        int health = 100;
+        int maxHealth = 100;
+        int maxDefenses = 100;
 };
 
 #endif

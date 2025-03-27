@@ -29,7 +29,7 @@ class Workplace : public Building {
         // Get produced product type and amount
         void generateProduct();
         bool sellProduct(Product product, int amount, double price);
-        Product getProductType() const { return productType; }
+        virtual Product getProductType() const { return productType; }
         
     protected:
         std::string name;

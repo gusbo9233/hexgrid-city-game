@@ -1,3 +1,4 @@
+#include <SFML/Graphics.hpp>
 #include "../include/Game.h"
 #include "../include/characters/Soldier.h"
 #include <cmath>
@@ -5,7 +6,13 @@
 #include "../include/buildings/City.h"
 #include "../include/graphics/GridFiller.h"
 #include "../include/resources/Resource.h"
-#include <Workplace.h>
+#include "../include/business/workplaces/Workplace.h"
+#include <iostream>
+#include <sstream>  // For stringstream
+#include <memory>
+#include <optional>
+#include <string>
+#include <limits>
 
 Game::Game() 
     : mWindow(sf::VideoMode({1200, 800}), "Hexagonal Grid - WASD to move, Q/R to highlight axes"), 
@@ -19,7 +26,8 @@ Game::Game()
       mHasSelection(false),
       mCurrentAxis(HighlightAxis::None),
       mSoldier(nullptr),
-      mFogOfWarEnabled(true) {
+      mFogOfWarEnabled(true),
+      mSideBar(sf::Vector2f(1200.f, 800.f)) {
     mWindow.setFramerateLimit(60);
     
     // Initialize the camera view
@@ -36,8 +44,19 @@ Game::Game()
     mBuildings = gridFiller.getBuildings();
     mNationalAccounts = NationalAccounts();
     mInternationalMarkets = InternationalMarkets();
-    mEconomicPolicy = EconomicPolicy();
     mGovernment = Government();
+    
+    // Initialize font for UI text
+    if (!mFont.openFromFile("assets/fonts/arial.ttf")) {
+        // Fallback to default system font if asset not found
+        std::cerr << "Warning: Could not load font from assets/fonts/arial.ttf" << std::endl;
+    } else {
+        // Create the text object with the loaded font - font parameter must be first
+        mGovDataText.emplace(mFont, "", 16);
+        mGovDataText->setFillColor(sf::Color::White);
+        mGovDataText->setPosition({10.f, 10.f});
+    }
+    
     // Starting position for soldier in bottom half of map (positive r value)
     Hexagon::CubeCoord soldierStartPos = {2, 5, -7};
     
@@ -67,6 +86,27 @@ Game::Game()
     }
     
     // No need to call generateCityHexesPositions() anymore since GridFiller handles it
+    
+    // Set up sidebar callbacks
+    mSideBar.setCallback(SideBar::CellId::Cell1, [this]() { 
+        std::cout << "Sidebar Cell 1 clicked!" << std::endl;
+        // Add functionality for Cell 1
+    });
+    
+    mSideBar.setCallback(SideBar::CellId::Cell2, [this]() { 
+        std::cout << "Sidebar Cell 2 clicked!" << std::endl;
+        // Add functionality for Cell 2
+    });
+    
+    mSideBar.setCallback(SideBar::CellId::Cell3, [this]() { 
+        std::cout << "Sidebar Cell 3 clicked!" << std::endl;
+        // Add functionality for Cell 3
+    });
+    
+    mSideBar.setCallback(SideBar::CellId::Cell4, [this]() { 
+        std::cout << "Sidebar Cell 4 clicked!" << std::endl;
+        // Add functionality for Cell 4
+    });
 }
 
 // Add destructor to clean up memory
@@ -91,6 +131,18 @@ void Game::run() {
 }
 
 void Game::onLeftClick(const sf::Vector2f& worldPos) {
+    // Convert window position to world coordinates
+    sf::Vector2f screenPos = mWindow.mapPixelToCoords(
+        sf::Vector2i(static_cast<int>(worldPos.x), static_cast<int>(worldPos.y)),
+        mWindow.getDefaultView() // Use default view for UI elements
+    );
+    
+    // Check if the sidebar was clicked
+    SideBar::CellId clickedCell;
+    if (mSideBar.handleClick(screenPos, clickedCell)) {
+        handleSideBarClick(clickedCell);
+        return; // Don't process grid clicks if sidebar was clicked
+    }
 
     if (mHasSelection) {
         mGrid.resetHighlights();
@@ -193,6 +245,15 @@ Hexagon* Game::getSourceHex(Character* character) {
 
 void Game::moveSelectedCharacter(Hexagon* source, Hexagon* target, Character* character) {
     if (mGrid.areAdjacent(source->getCoord(), target->getCoord())) {
+        if (target->hasBuilding()) {
+            if (target->getBuilding()->getAllegiance() != character->getAllegiance() 
+            && target->getBuilding()->getDefenses() > 0) {
+               return;
+            }
+        }
+        if (target->hasCharacter()) {
+            return;
+        }
         // Remove the character from the source hex
         source->removeCharacter();
 
@@ -240,7 +301,7 @@ sf::Vector2f Game::clampCameraPosition(const sf::Vector2f& position) {
     
     // Calculate allowed camera region (ensure the camera doesn't show outside the grid bounds)
     float minX = mGridBounds.position.x + halfWidth;
-    float maxX = mGridBounds.position.x + mGridBounds.size.x - halfWidth;
+    float maxX = mGridBounds.position.x + mGridBounds.size.x - halfWidth + 75.f; // Added 75 to accommodate wider sidebar
     float minY = mGridBounds.position.y + halfHeight;
     float maxY = mGridBounds.position.y + mGridBounds.size.y - halfHeight;
     
@@ -278,9 +339,11 @@ void Game::updateCamera(const sf::Vector2f& movement) {
 
 void Game::update() {
     // No additional updates needed
-    
+    generateProducts();
     // Update visibility for fog of war
     updateVisibility();
+    mNationalAccounts.nextDay();
+    setCharactersTargetPosition();
 }
 
 void Game::render() {
@@ -297,8 +360,43 @@ void Game::render() {
         mRenderer.render(*mSoldier);
     }
     
+    // Store the current view
+    sf::View currentView = mWindow.getView();
+    
+    // Switch to default view for UI elements
+    mWindow.setView(mWindow.getDefaultView());
+    
+    // Render the sidebar
+    mSideBar.draw(mWindow);
+    
+    // Render government data on screen
+    renderGovernmentData();
+    
+    // Restore the game view
+    mWindow.setView(currentView);
+    
     // Display the rendered frame
     mRenderer.display();
+}
+
+void Game::renderGovernmentData() {
+    // Only render if text was successfully created
+    if (!mGovDataText.has_value()) {
+        return;
+    }
+    
+    // Create text to display
+    std::stringstream ss;
+    ss << "Government Data:" << std::endl
+       << "Treasury: $" << mGovernment.getMoney() << std::endl
+       << "Tax Rate: " << (mGovernment.getTaxRate() * 100) << "%" << std::endl
+       << "Interest Rate: " << (mGovernment.getInterestRate() * 100) << "%" << std::endl
+       << "GDP: $" << mNationalAccounts.getGDP();
+    
+    mGovDataText->setString(ss.str());
+    
+    // Draw text directly to window
+    mWindow.draw(*mGovDataText);
 }
 
 void Game::highlightAxis(HighlightAxis axis) {
@@ -384,16 +482,11 @@ std::vector<Character*> Game::getCharacters() const {
 std::vector<Building*> Game::getBuildings() const {
     std::vector<Building*> buildings;
     
-    // Collect buildings from all cities
-    for (const auto& city : mCities) {
-        for (const auto& [coord, building] : city->getBuildings()) {
-            buildings.push_back(building.get());
+    //search for all buildings in the grid
+    for (const auto& hex : mGrid.getAllHexes()) {
+        if (hex->hasBuilding()) {
+            buildings.push_back(hex->getBuilding());
         }
-    }
-    
-    // Add standalone buildings (like oil refineries)
-    for (const auto& building : mBuildings) {
-        buildings.push_back(building.get());
     }
     
     return buildings;
@@ -402,16 +495,112 @@ std::vector<Building*> Game::getBuildings() const {
 void Game::generateProducts() {
     std::vector<Building*> mBuildings = getBuildings();
     for (const auto& building : mBuildings) {
-        if (building->isBuildingType(BuildingType::Workplace)) {
-            Workplace* workplace = dynamic_cast<Workplace*>(building);
+        Workplace* workplace = dynamic_cast<Workplace*>(building);
+        if (workplace) {
+            //std::cout << "Generating product for workplace" << std::endl;
             workplace->generateProduct();
             int sellPrice = mInternationalMarkets.getProductPrice(workplace->getProductType());
-            int taxAmount = sellPrice * mEconomicPolicy.getTaxRate();
+            mNationalAccounts.addMoney(sellPrice);
+
+            int taxAmount = sellPrice * mGovernment.getTaxRate();
             bool soldProduct = workplace->sellProduct(workplace->getProductType(), 1, sellPrice - taxAmount);
             if (soldProduct) {
-                mNationalAccounts.addMoney(sellPrice);
                 mGovernment.addMoney(taxAmount);
+                std::cout << "Sold product for " << sellPrice << " money" << std::endl;
+                std::cout<<mGovernment.getMoney()<<std::endl;
             }
+        }
+    }
+}
+
+void Game::handleSideBarClick(SideBar::CellId cell) {
+    // This function can be used to add specific actions when sidebar cells are clicked
+    // The callbacks set up in the constructor will already have executed
+    switch (cell) {
+        case SideBar::CellId::Cell1:
+            // Additional handling for Cell 1 if needed
+            break;
+        case SideBar::CellId::Cell2:
+            // Additional handling for Cell 2 if needed
+            break;
+        case SideBar::CellId::Cell3:
+            // Additional handling for Cell 3 if needed
+            break;
+        case SideBar::CellId::Cell4:
+            // Additional handling for Cell 4 if needed
+            break;
+    }
+}
+
+void Game::setCharactersTargetPosition() {
+    for (const auto& character : getCharacters()) {
+        std::vector<Hexagon*> hexesInRange = mGrid.getHexesInRange(character->getHexCoord(), character->getRange());
+        
+        // Clear any existing target
+        character->clearTargetPosition();
+        
+        // First try to find the closest enemy character in range
+        float closestCharacterDistance = std::numeric_limits<float>::max();
+        Character* closestCharacter = nullptr;
+        
+        for (const auto& hex : hexesInRange) {
+            if (hex->hasCharacter()) {
+                Character* targetCharacter = hex->getCharacter();
+                
+                // Check if it's an enemy to our character (don't target friendlies)
+                if (targetCharacter->getAllegiance() != character->getAllegiance()) {
+                    
+                    // Calculate distance
+                    float distance = Hexagon::distance(character->getHexCoord(), targetCharacter->getHexCoord());
+                    
+                    if (distance < closestCharacterDistance) {
+                        closestCharacterDistance = distance;
+                        closestCharacter = targetCharacter;
+                    }
+                }
+            }
+        }
+        
+        // If we found a character in range, set it as the target
+        if (closestCharacter) {
+            sf::Vector2f targetPos = Hexagon::cubeToPixel(closestCharacter->getHexCoord(), 25.0f);
+            character->setTargetPosition(targetPos);
+            continue; // We're done with this character
+        }
+        
+        // If no character was found, look for buildings
+        float closestBuildingDistance = std::numeric_limits<float>::max();
+        Building* closestBuilding = nullptr;
+        
+        for (const auto& hex : hexesInRange) {
+            if (hex->hasBuilding()) {
+                Building* targetBuilding = hex->getBuilding();
+                
+                // Only target buildings of opposing allegiance
+                if (targetBuilding->getAllegiance() != character->getAllegiance()) {
+                    // Calculate distance
+                    float distance = Hexagon::distance(character->getHexCoord(), hex->getCoord());
+                    
+                    if (distance < closestBuildingDistance) {
+                        closestBuildingDistance = distance;
+                        closestBuilding = targetBuilding;
+                    }
+                }
+            }
+        }
+        
+        // If we found a building in range, set it as the target
+        if (closestBuilding) {
+            sf::Vector2f targetPos = closestBuilding->getPosition();
+            character->setTargetPosition(targetPos);
+        }
+        
+        // Debug output only if character has a target
+        if (character->hasTarget()) {
+            std::cout << "Character has target at: " << character->getTargetPosition().x << ", " 
+                      << character->getTargetPosition().y << std::endl;
+        } else {
+            std::cout << "Character has no target" << std::endl;
         }
     }
 }

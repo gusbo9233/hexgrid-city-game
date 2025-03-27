@@ -1,6 +1,6 @@
 #ifndef NATIONAL_ACCOUNTS_H
 #define NATIONAL_ACCOUNTS_H
-#include "Product.h"
+#include "../business/Product.h"
 #include <map>
 class NationalAccounts {
     public:
@@ -12,9 +12,16 @@ class NationalAccounts {
         int getMoney();
         void addMoney(int amount);
         void removeMoney(int amount);
+        void nextDay();
+        void calculateGDP();
+        double getGDP();
+        
     private:
         std::map<Product, int> mProducts;
         int money;
+        int days;
+        double GDP;
+        std::map<int, double> dailyEarnings;
 };
 
 #endif // NATIONAL_ACCOUNTS_H

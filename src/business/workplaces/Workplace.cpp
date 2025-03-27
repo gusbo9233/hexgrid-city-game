@@ -11,6 +11,7 @@ Workplace::Workplace(const sf::Vector2f& position) : Building(position), maxEmpl
                                                     currentEmployees(0), profession(nullptr), 
                                                     productType(FOOD) {
     name = "Default Workplace";
+    minStock = 2000;
     initializeShape();
 }
 
@@ -43,4 +44,9 @@ bool Workplace::sellProduct(Product product, int amount, double price) {
         return true;
     }
     return false;
+}
+
+void Workplace::generateProduct() {
+    // Simple implementation - increase stock by 1 for now
+    stock++;
 }

@@ -5,7 +5,7 @@
 Character::Character(int q, int r, Allegiance allegiance) 
     : mQ(q), mR(r), health(100), maxHealth(100), 
     attackPower(10), defensePower(5), speed(1), range(1), mSprite(nullptr),
-    mAllegiance(allegiance) {
+    mAllegiance(allegiance), mTargetPosition(std::nullopt) {
     // Default character initialization - sprite will be created when texture is set
 }
 
@@ -40,12 +40,6 @@ bool Character::loadTexture(const std::string& path) {
     return true;
 }
 
-void Character::shootProjectile() {
-    if (mProjectileType) {
-        
-    }
-}
-
 void Character::setPosition(const sf::Vector2f& pixelPos) {
     if (mSprite) {
         mSprite->setPosition(pixelPos);
@@ -75,4 +69,36 @@ void Character::setHexCoord(int q, int r) {
 void Character::setHexCoord(const Hexagon::CubeCoord& coord) {
     mQ = coord.q;
     mR = coord.r;
+}
+
+Projectile Character::shootProjectile() {
+    if (!hasTarget() || !mProjectileType) {
+        // No target or no projectile type defined, return default projectile with 0 values
+        return Projectile(0, 0, 0, 0, mAllegiance);
+    }
+    
+    // Get the current character position (using sprite position)
+    sf::Vector2f startPos = mSprite ? mSprite->getPosition() : sf::Vector2f(0, 0);
+    
+    // Get the target position
+    sf::Vector2f targetPos = mTargetPosition.value();
+    
+    // Calculate direction vector from start to target
+    sf::Vector2f direction = targetPos - startPos;
+    
+    // Normalize the direction vector to get magnitude components
+    float length = std::sqrt(direction.x * direction.x + direction.y * direction.y);
+    if (length > 0) {
+        direction.x /= length;
+        direction.y /= length;
+    }
+    
+    // Create projectile from current position with direction magnitude toward target
+    return Projectile(
+        static_cast<int>(startPos.x), 
+        static_cast<int>(startPos.y),
+        static_cast<double>(direction.x), 
+        static_cast<double>(direction.y),
+        mAllegiance
+    );
 }

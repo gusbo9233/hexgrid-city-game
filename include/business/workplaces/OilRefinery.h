@@ -20,7 +20,7 @@ class OilRefinery : public Workplace {
         
         // Override the type identification from Workplace
         BuildingType getType() const override { return BuildingType::OilRefinery; }
-
+        Product getProductType() const override { return Product::RefinedOil; }
         std::string getImagePath() const override { return "assets/images/OilRefinery.png"; }
         
         // Implement the pure virtual methods from Building

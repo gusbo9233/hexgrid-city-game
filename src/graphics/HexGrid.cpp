@@ -261,11 +261,11 @@ void HexGrid::resetVisibility() {
 }
 
 // Get all hexes
-std::vector<Hexagon*> HexGrid::getAllHexes() {
+std::vector<Hexagon*> HexGrid::getAllHexes() const {
     std::vector<Hexagon*> result;
     result.reserve(mHexagons.size());
     
-    for (auto& [coord, hex] : mHexagons) {
+    for (const auto& [coord, hex] : mHexagons) {
         result.push_back(hex.get());
     }
     

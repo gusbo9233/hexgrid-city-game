@@ -7,7 +7,7 @@
 
 class Projectile {
     public:
-        Projectile(int damage, int speed, int xPos, int yPos, double xMagnitude, double yMagnitude, Allegiance allegiance);
+        Projectile(int xPos, int yPos, double xMagnitude, double yMagnitude, Allegiance allegiance);
         void update();
         void draw(sf::RenderWindow& window);
     private:

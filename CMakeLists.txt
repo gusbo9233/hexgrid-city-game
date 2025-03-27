@@ -33,12 +33,14 @@ add_executable(CPPGame
     src/business/workplaces/Workplace.cpp
     src/business/Proffesion.cpp
     src/business/workplaces/OilRefinery.cpp
+    src/business/workplaces/Farm.cpp
     
     # Graphics files
     src/graphics/HexGrid.cpp
     src/graphics/Renderer.cpp
     src/graphics/VisibilitySystem.cpp
     src/graphics/GridFiller.cpp
+    src/graphics/SideBar.cpp
     
     # Resource files
     src/resources/Resource.cpp
@@ -46,6 +48,11 @@ add_executable(CPPGame
     
     # Projectile files
     src/projectiles/projectile.cpp
+    
+    # Economy files
+    src/economy/NationalAccounts.cpp
+    src/economy/InternationalMarkets.cpp
+    src/economy/Government.cpp
 )
 
 # Link SFML libraries

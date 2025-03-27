@@ -15,8 +15,9 @@
 #include "resources/Resource.h"
 #include "economy/NationalAccounts.h"
 #include "economy/InternationalMarkets.h"
-#include "economy/EconomicPolicy.h"
 #include "economy/Government.h"
+#include "graphics/SideBar.h"
+
 class Game {
 public:
     enum class HighlightAxis {
@@ -75,10 +76,20 @@ private:
     // Toggle for fog of war
     bool mFogOfWarEnabled = true;
     
+    // UI elements for government data
+    sf::Font mFont;
+    std::optional<sf::Text> mGovDataText;
+    
+    // Sidebar for UI controls
+    SideBar mSideBar;
+    
     void update();
     void render();
     void updateCamera(const sf::Vector2f& movement);
     void highlightAxis(HighlightAxis axis);
+    
+    // Render government data on screen
+    void renderGovernmentData();
     
     void generateCityHexesPositions();
     // Clamp camera position to ensure it stays within grid bounds
@@ -99,8 +110,13 @@ private:
     void generateProducts();
     NationalAccounts mNationalAccounts;
     InternationalMarkets mInternationalMarkets;
-    EconomicPolicy mEconomicPolicy;
     Government mGovernment;
+    
+    // Handle sidebar cell clicks
+    void handleSideBarClick(SideBar::CellId cell);
+
+
+    void setCharactersTargetPosition();
 };
 
 #endif // GAME_H 

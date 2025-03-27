@@ -3,10 +3,12 @@
 #include <SFML/Graphics.hpp>
 #include <memory>
 #include <string>
+#include <optional>
 #include "Hexagon.h"
 #include "CharacterType.h"
 #include "Allegiance.h"
 #include "projectiles/ProjectileType.h"
+#include "projectiles/Projectile.h"
 class Character {
     public:
         Character(int q, int r, Allegiance allegiance = Allegiance::FRIENDLY);
@@ -43,6 +45,21 @@ class Character {
         int getVisibilityRange() const { return mVisibilityRange; }
         void setVisibilityRange(int range) { mVisibilityRange = range; }
         
+        // Target position methods
+        void setTargetPosition(const sf::Vector2f& position) { mTargetPosition = position; }
+        void clearTargetPosition() { mTargetPosition.reset(); }
+        bool hasTarget() const { return mTargetPosition.has_value(); }
+        sf::Vector2f getTargetPosition() const { 
+            return mTargetPosition.value_or(sf::Vector2f(0, 0)); 
+        }
+        std::optional<sf::Vector2f> getOptionalTargetPosition() const { 
+            return mTargetPosition; 
+        }
+        
+        int getRange() const { return range; }
+        Projectile shootProjectile();
+
+        
     protected:
         static constexpr float STANDARD_SIZE = 25.0f;
         
@@ -58,10 +75,12 @@ class Character {
         sf::Texture mTexture;
         std::unique_ptr<sf::Sprite> mSprite;
         std::optional<ProjectileType> mProjectileType;
-        void shootProjectile();
+        std::optional<sf::Vector2f> mTargetPosition;
+        std::optional<Projectile> mProjectile;
+        
 
         
-    private:
+    
         int mQ;
         int mR;
         
@@ -77,6 +96,7 @@ class Character {
         
         // Default visibility range - can be overridden by specific character types
         int mVisibilityRange = 3;
+
 };
 
 #endif
