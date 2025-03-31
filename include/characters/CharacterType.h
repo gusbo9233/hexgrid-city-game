@@ -10,7 +10,8 @@ enum class CharacterType {
     Doctor,
     Student,
     Teacher,
-    Farmer
+    Farmer,
+    Tank
 };
 
 #endif 

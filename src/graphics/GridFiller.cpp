@@ -7,6 +7,7 @@
 #include "../../include/Allegiance.h"
 #include "../../include/business/workplaces/OilRefinery.h"
 #include "../../include/business/workplaces/Farm.h"
+#include "../../include/characters/Tank.h"
 
 GridFiller::GridFiller(HexGrid& grid) : mGrid(grid) {
     std::cout << "GridFiller constructor" << std::endl;
@@ -20,24 +21,31 @@ GridFiller::~GridFiller() {
 void GridFiller::fillGrid() {
     std::cout << "GridFiller::fillGrid() start" << std::endl;
     
-    // Generate friendly cities in bottom half
+    // Generate cities
     generateCities(Allegiance::FRIENDLY);
-    
-    // Generate enemy cities in top half
     generateCities(Allegiance::ENEMY);
     
-    // Generate resources around cities
+    // Generate resources
     generateResources();
     
-    // Generate oil refineries for each allegiance
+    // Generate oil refineries
     generateOilRefinery(Allegiance::FRIENDLY);
     generateOilRefinery(Allegiance::ENEMY);
     
-    // Generate farms for each allegiance
+    // Generate farms
     generateFarms(Allegiance::FRIENDLY);
     generateFarms(Allegiance::ENEMY);
     
-    std::cout << "GridFiller::fillGrid() complete, created " << mCities.size() << " cities" << std::endl;
+    // Generate soldiers
+    generateSoldiers(Allegiance::FRIENDLY);
+    generateSoldiers(Allegiance::ENEMY);
+    
+    // Generate tanks
+    generateTank(Allegiance::FRIENDLY);
+    generateTank(Allegiance::ENEMY);
+    
+    std::cout << "GridFiller::fillGrid() complete, created " << mCities.size() << " cities, " 
+              << mResources.size() << " resources, " << mCharacters.size() << " characters" << std::endl;
 }
 
 std::vector<std::unique_ptr<City>> GridFiller::getCities() {
@@ -53,6 +61,129 @@ std::vector<std::unique_ptr<Resource>> GridFiller::getResources() {
 std::vector<std::unique_ptr<Building>> GridFiller::getBuildings() {
     // Transfer ownership of buildings to the caller
     return std::move(mBuildings);
+}
+
+std::vector<std::unique_ptr<Character>> GridFiller::getCharacters() {
+    // Transfer ownership of characters to the caller
+    return std::move(mCharacters);
+}
+
+void GridFiller::generateTank(Allegiance allegiance) {
+    std::cout << "GridFiller::generateTank() placing tanks for " 
+              << (allegiance == Allegiance::FRIENDLY ? "friendly" : "enemy") << " cities" << std::endl;
+    
+    int tanksPlaced = 0;
+    
+    // Get all cities with the matching allegiance
+    for (const auto& city : mCities) {
+        if (city->getAllegiance() == allegiance) {
+            // Get all hexes for this city
+            const auto& cityHexes = city->getHexes();
+            
+            // Filter to find hexes without characters
+            std::vector<Hexagon*> availableHexes;
+            for (auto hex : cityHexes) {
+                if (!hex->hasCharacter()) {
+                    availableHexes.push_back(hex);
+                }
+            }
+            
+            if (!availableHexes.empty()) {
+                // Choose a random hex in the city
+                std::random_device rd;
+                std::mt19937 gen(rd());
+                std::uniform_int_distribution<> dist(0, availableHexes.size() - 1);
+                Hexagon* selectedHex = availableHexes[dist(gen)];
+                
+                // Create coordinates from the selected hex
+                Hexagon::CubeCoord coord = selectedHex->getCoord();
+                
+                // Create a new tank
+                auto tank = std::make_unique<Tank>(coord.q, coord.r);
+                tank->setAllegiance(allegiance);
+                
+                // Position the tank's sprite at the hex's position
+                tank->setPosition(selectedHex->getPosition());
+                
+                // Get a raw pointer before moving it to the list
+                Tank* tankPtr = tank.get();
+                
+                // Set the tank in the hex
+                selectedHex->setCharacter(tankPtr);
+                
+                // Add to character list
+                mCharacters.push_back(std::move(tank));
+                
+                tanksPlaced++;
+                std::cout << "Placed a tank in city at (" 
+                          << coord.q << "," << coord.r << "," << coord.s << ")" << std::endl;
+                
+                // Only place one tank per allegiance
+                break;
+            }
+        }
+    }
+    
+    std::cout << "GridFiller::generateTank() complete, placed " << tanksPlaced 
+              << " tanks for " << (allegiance == Allegiance::FRIENDLY ? "friendly" : "enemy") << " cities" << std::endl;
+}
+
+void GridFiller::generateSoldiers(Allegiance allegiance) {
+    std::cout << "GridFiller::generateSoldiers() placing soldiers for " 
+              << (allegiance == Allegiance::FRIENDLY ? "friendly" : "enemy") << " cities" << std::endl;
+    
+    // We'll place one soldier per city of the specified allegiance
+    int soldiersPlaced = 0;
+    
+    // Get all cities with the matching allegiance
+    for (const auto& city : mCities) {
+        if (city->getAllegiance() == allegiance) {
+            // Get all hexes for this city
+            const auto& cityHexes = city->getHexes();
+            
+            // Filter to find hexes without characters
+            std::vector<Hexagon*> availableHexes;
+            for (auto hex : cityHexes) {
+                if (!hex->hasCharacter()) {
+                    availableHexes.push_back(hex);
+                }
+            }
+            
+            if (!availableHexes.empty()) {
+                // Choose a random hex in the city
+                std::random_device rd;
+                std::mt19937 gen(rd());
+                std::uniform_int_distribution<> dist(0, availableHexes.size() - 1);
+                Hexagon* selectedHex = availableHexes[dist(gen)];
+                
+                // Create coordinates from the selected hex
+                Hexagon::CubeCoord coord = selectedHex->getCoord();
+                
+                // Create a new soldier
+                auto soldier = std::make_unique<Soldier>(coord.q, coord.r);
+                soldier->setAllegiance(allegiance);
+                
+                // Position the soldier's sprite at the hex's position
+                soldier->setPosition(selectedHex->getPosition());
+                
+                // Get a raw pointer before moving it to the list
+                Soldier* soldierPtr = soldier.get();
+                
+                // Set the soldier in the hex
+                selectedHex->setCharacter(soldierPtr);
+                
+                // Add to character list
+                mCharacters.push_back(std::move(soldier));
+                
+                soldiersPlaced++;
+                std::cout << "Placed a soldier in city at (" 
+                          << coord.q << "," << coord.r << "," << coord.s << ")" << std::endl;
+            }
+        }
+    }
+    
+    std::cout << "GridFiller::generateSoldiers() complete, placed " << soldiersPlaced 
+              << " soldiers for " << (allegiance == Allegiance::FRIENDLY ? "friendly" : "enemy") << " cities" << std::endl;
 }
 
 void GridFiller::generateCities(Allegiance allegiance) {

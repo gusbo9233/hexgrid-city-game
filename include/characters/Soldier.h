@@ -13,10 +13,6 @@ public:
     
     // Override update method with soldier-specific behavior
     void update(float deltaTime) override {}
-    
-    // Soldier-specific methods
-    void attack(Character* target);
-    void move(Hexagon* targetHex);
 
 protected:
     // Define soldier-specific constants

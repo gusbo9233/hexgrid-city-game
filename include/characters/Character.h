@@ -9,18 +9,22 @@
 #include "Allegiance.h"
 #include "projectiles/ProjectileType.h"
 #include "projectiles/Projectile.h"
-class Character {
+#include "GameObject.h"
+
+class Character : public GameObject {
     public:
         Character(int q, int r, Allegiance allegiance = Allegiance::FRIENDLY);
         virtual ~Character() = default;
         
-        // Position setting methods
-        void setPosition(const sf::Vector2f& pixelPos);
+        // Position methods - overriding from GameObject
+        void setPosition(const sf::Vector2f& pixelPos) override;
+        
+        // Hex coordinate methods
         void setHexCoord(int q, int r);
         void setHexCoord(const Hexagon::CubeCoord& coord);
         
-        // NVI pattern for rendering
-        void render(sf::RenderWindow& window) const;
+        // Movement method
+        void move(Hexagon* targetHex);
         
         // Coordinate getters
         int getQ() const { return mQ; }
@@ -31,12 +35,6 @@ class Character {
         // Type identification
         virtual CharacterType getType() const = 0;
         bool isCharacterType(CharacterType type) const { return getType() == type; }
-        
-        // Allegiance methods
-        Allegiance getAllegiance() const { return mAllegiance; }
-        void setAllegiance(Allegiance allegiance) { mAllegiance = allegiance; }
-        bool isFriendly() const { return mAllegiance == Allegiance::FRIENDLY; }
-        bool isEnemy() const { return mAllegiance == Allegiance::ENEMY; }
         
         // Common virtual behavior
         virtual void update(float deltaTime) {}
@@ -57,30 +55,30 @@ class Character {
         }
         
         int getRange() const { return range; }
-        Projectile shootProjectile();
-
+        std::optional<Projectile> shootProjectile();
+        void resetShootCooldown(int cooldownTime = 60);
+        int getShootCooldown() const { return shootCooldown; }
+        void updateShootCooldown(float deltaTime) { shootCooldown -= deltaTime; }
+        bool canShoot() const { return shootCooldown <= 0; }
+        void updateCooldowns(float deltaTime);
+        void takeDamage(int damage);
         
+        // Health status methods
+        int getHealth() const { return health; }
+        bool isDead() const { return health <= 0; }
     protected:
         static constexpr float STANDARD_SIZE = 25.0f;
         
-        virtual float getScaleFactor() const = 0;
-        virtual sf::Vector2f getSize() const { return {STANDARD_SIZE, STANDARD_SIZE}; }
+        // Override GameObject methods
+        float getScaleFactor() const override = 0;
+        sf::Vector2f getSize() const override { return {STANDARD_SIZE, STANDARD_SIZE}; }
         
-        // NVI implementation - can be overridden by derived classes
-        virtual void doRender(sf::RenderWindow& window) const;
+        // Override the render implementation
+        void doRender(sf::RenderWindow& window) const override;
         
-        bool loadTexture(const std::string& path);
-        
-        sf::Image mImage;
-        sf::Texture mTexture;
-        std::unique_ptr<sf::Sprite> mSprite;
         std::optional<ProjectileType> mProjectileType;
         std::optional<sf::Vector2f> mTargetPosition;
-        std::optional<Projectile> mProjectile;
         
-
-        
-    
         int mQ;
         int mR;
         
@@ -91,12 +89,10 @@ class Character {
         int speed;
         int range;
         
-        // Allegiance - default to friendly
-        Allegiance mAllegiance;
-        
         // Default visibility range - can be overridden by specific character types
         int mVisibilityRange = 3;
-
+        int shootCooldown = 0;
+        float shootCooldownMax = 500;
 };
 
 #endif

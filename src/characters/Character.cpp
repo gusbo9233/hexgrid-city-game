@@ -1,64 +1,26 @@
 #include "../../include/characters/Character.h"
 #include <iostream>
 #include <filesystem>
+#include "../../include/projectiles/Bullet.h"
+#include "../../include/projectiles/TankAmmo.h"
 
 Character::Character(int q, int r, Allegiance allegiance) 
-    : mQ(q), mR(r), health(100), maxHealth(100), 
-    attackPower(10), defensePower(5), speed(1), range(1), mSprite(nullptr),
-    mAllegiance(allegiance), mTargetPosition(std::nullopt) {
-    // Default character initialization - sprite will be created when texture is set
-}
-
-bool Character::loadTexture(const std::string& path) {
-    if (!mTexture.loadFromFile(path)) {
-        // Create a fallback red square texture if texture loading fails
-        sf::Image img;
-        img.resize({32, 32});
-        for (unsigned int i = 0; i < 32; ++i) {
-            for (unsigned int j = 0; j < 32; ++j) {
-                img.setPixel({i, j}, sf::Color::Red);
-            }
-        }
-        if (!mTexture.loadFromImage(img)) {
-            return false;
-        }
-    }
-    
-    // Create sprite using the loaded texture
-    mSprite = std::make_unique<sf::Sprite>(mTexture);
-    
-    // Center the sprite origin
-    sf::FloatRect bounds = mSprite->getLocalBounds();
-    mSprite->setOrigin({bounds.size.x / 2.0f, bounds.size.y / 2.0f});
-    
-    // Scale the sprite to match the character's intended size
-    sf::Vector2f characterSize = getSize();
-    float scaleX = (characterSize.x * getScaleFactor()) / bounds.size.x;
-    float scaleY = (characterSize.y * getScaleFactor()) / bounds.size.y;
-    mSprite->setScale({scaleX, scaleY});
-    
-    return true;
+    : GameObject(0.0f, 0.0f, allegiance), // Position will be set later
+      mQ(q), mR(r), health(100), maxHealth(100), 
+      attackPower(10), defensePower(5), speed(1), range(1),
+      mTargetPosition(std::nullopt) {
+    // Position will be set externally based on hex coordinates
 }
 
 void Character::setPosition(const sf::Vector2f& pixelPos) {
-    if (mSprite) {
-        mSprite->setPosition(pixelPos);
-    }
+    // Update GameObject position
+    GameObject::setPosition(pixelPos);
 }
 
-// NVI pattern implementation for render
-void Character::render(sf::RenderWindow& window) const {
-    // Common pre-rendering operations could go here
-    doRender(window);
-    // Common post-rendering operations could go here
-}
-
-// Default implementation of doRender
+// Default implementation of doRender from GameObject
 void Character::doRender(sf::RenderWindow& window) const {
-    // Only draw if we have a valid sprite
-    if (mSprite) {
-        window.draw(*mSprite);
-    }
+    // Use the GameObject's draw functionality
+    GameObject::doRender(window);
 }
 
 void Character::setHexCoord(int q, int r) {
@@ -71,14 +33,49 @@ void Character::setHexCoord(const Hexagon::CubeCoord& coord) {
     mR = coord.r;
 }
 
-Projectile Character::shootProjectile() {
-    if (!hasTarget() || !mProjectileType) {
-        // No target or no projectile type defined, return default projectile with 0 values
-        return Projectile(0, 0, 0, 0, mAllegiance);
+void Character::move(Hexagon* targetHex) {
+    if (!targetHex) return;
+    
+    // Update hex coordinates
+    setHexCoord(targetHex->getCoord());
+    
+    // Update position
+    setPosition(targetHex->getPosition());
+}
+
+void Character::resetShootCooldown(int cooldownTime) {
+    shootCooldown = cooldownTime;
+}
+
+void Character::updateCooldowns(float deltaTime) {
+    // Decrease cooldown based on elapsed time
+    if (shootCooldown > 0) {
+        shootCooldown -= 1; // Simple frame-based cooldown
+    }
+}
+
+std::optional<Projectile> Character::shootProjectile() {
+    // Debug all conditions that might prevent shooting
+    if (!canShoot()) {
+        std::cout << "Cannot shoot: cooldown is " << shootCooldown << std::endl;
+        return std::nullopt;
     }
     
-    // Get the current character position (using sprite position)
-    sf::Vector2f startPos = mSprite ? mSprite->getPosition() : sf::Vector2f(0, 0);
+    if (!hasTarget()) {
+        std::cout << "Cannot shoot: no target set" << std::endl;
+        return std::nullopt;
+    }
+    
+    if (!mProjectileType) {
+        std::cout << "Cannot shoot: no projectile type defined" << std::endl;
+        return std::nullopt;
+    }
+    
+    // Reset cooldown when shooting
+    resetShootCooldown();
+    
+    // Get the current character position
+    sf::Vector2f startPos = getPosition();
     
     // Get the target position
     sf::Vector2f targetPos = mTargetPosition.value();
@@ -86,19 +83,63 @@ Projectile Character::shootProjectile() {
     // Calculate direction vector from start to target
     sf::Vector2f direction = targetPos - startPos;
     
-    // Normalize the direction vector to get magnitude components
-    float length = std::sqrt(direction.x * direction.x + direction.y * direction.y);
-    if (length > 0) {
-        direction.x /= length;
-        direction.y /= length;
+    // Calculate distance to target
+    float distanceToTarget = std::sqrt(direction.x * direction.x + direction.y * direction.y);
+    
+    // Debug output to log positions and distance
+    std::cout << "Shooting from (" << startPos.x << "," << startPos.y 
+              << ") to (" << targetPos.x << "," << targetPos.y 
+              << ") at distance " << distanceToTarget << std::endl;
+    
+    // Special case for very close enemies - adjust the direction slightly to ensure hit
+    if (distanceToTarget < 30.0f) {
+        std::cout << "Target is very close! Adjusting aim to ensure hit." << std::endl;
+        // For close targets, we'll use the exact vector to the target instead of normalizing
+        // This ensures the projectile doesn't overshoot at close range
+        
+        // If the distance is extremely small, give it a minimum length to avoid zero-length vectors
+        if (distanceToTarget < 5.0f) {
+            direction.x = (direction.x == 0) ? 0.1f : direction.x;
+            direction.y = (direction.y == 0) ? 0.1f : direction.y;
+        }
+        
+        // For close targets, don't normalize - use a slower speed to make sure we hit
+        switch (mProjectileType.value()) {
+            case ProjectileType::BULLET:
+                return Bullet(startPos.x, startPos.y, direction.x / 10.0f, direction.y / 10.0f, getAllegiance());
+            case ProjectileType::TANK_AMMO:
+                return TankAmmo(startPos.x, startPos.y, direction.x / 10.0f, direction.y / 10.0f, getAllegiance());
+            default:
+                std::cout << "Unknown projectile type" << std::endl;
+                return std::nullopt;
+        }
     }
     
-    // Create projectile from current position with direction magnitude toward target
-    return Projectile(
-        static_cast<int>(startPos.x), 
-        static_cast<int>(startPos.y),
-        static_cast<double>(direction.x), 
-        static_cast<double>(direction.y),
-        mAllegiance
-    );
+    // For normal range targets, normalize the direction vector
+    if (distanceToTarget > 0) {
+        direction.x /= distanceToTarget;
+        direction.y /= distanceToTarget;
+    }
+    
+    std::cout << "Character shooting projectile with normalized direction: (" 
+              << direction.x << "," << direction.y << ")" << std::endl;
+    
+    switch (mProjectileType.value()) {
+        case ProjectileType::BULLET:
+            return Bullet(startPos.x, startPos.y, direction.x, direction.y, getAllegiance());
+        case ProjectileType::TANK_AMMO:
+            return TankAmmo(startPos.x, startPos.y, direction.x, direction.y, getAllegiance());
+        default:
+            std::cout << "Unknown projectile type" << std::endl;
+            return std::nullopt;
+    }
 }
+
+void Character::takeDamage(int damage) {
+    health -= damage;
+    if (health <= 0) {
+        std::cout << "Character died" << std::endl;
+    }
+}
+
+

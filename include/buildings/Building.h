@@ -5,31 +5,19 @@
 #include <memory>
 #include "BuildingType.h"
 #include "Allegiance.h"
+#include "GameObject.h"
 
 // Forward declaration
 class Hexagon;
 
-class Building {
+class Building : public GameObject {
     public:
         Building(const sf::Vector2f& position, Allegiance allegiance = Allegiance::FRIENDLY);
         virtual ~Building() = default;
         
-        // Non-Virtual Interface pattern for draw
-        void draw(sf::RenderWindow& window) const;
-        
-        // Update position
-        void setPosition(const sf::Vector2f& position);
-        sf::Vector2f getPosition() const { return mPosition; }
-        
         // Type identification - pure virtual
         virtual BuildingType getType() const = 0;
         bool isBuildingType(BuildingType type) const { return getType() == type; }
-        
-        // Allegiance methods
-        Allegiance getAllegiance() const { return mAllegiance; }
-        void setAllegiance(Allegiance allegiance) { mAllegiance = allegiance; }
-        bool isFriendly() const { return mAllegiance == Allegiance::FRIENDLY; }
-        bool isEnemy() const { return mAllegiance == Allegiance::ENEMY; }
         
         // Virtual method for custom behavior
         virtual void update(float deltaTime) {}
@@ -45,6 +33,9 @@ class Building {
         int getMaxDefenses() const { return maxDefenses; }
         void takeDamage(int damage);
         void repair(int amount);
+        
+        // Get render size
+        sf::Vector2f getRenderSize() const { return mShape.getSize(); }
     
     protected:
         // Initialize the shape - should be called by subclasses after construction
@@ -57,20 +48,17 @@ class Building {
         static constexpr float STANDARD_SIZE = 25.0f;
         
         // Each building type should override these to define its appearance
-        virtual float getScaleFactor() const = 0;
-        virtual sf::Vector2f getSize() const { return {STANDARD_SIZE, STANDARD_SIZE}; }
+        virtual float getScaleFactor() const override = 0;
+        virtual sf::Vector2f getSize() const override { return {STANDARD_SIZE, STANDARD_SIZE}; }
         virtual std::string getImagePath() const { return ""; }
         
-        // NVI implementation - can be overridden for custom drawing
-        virtual void doDraw(sf::RenderWindow& window) const;
+        // Override render implementation
+        void doRender(sf::RenderWindow& window) const override;
         
+        // Rectangle shape for non-textured shapes
         sf::RectangleShape mShape;
-        sf::Vector2f mPosition;
-        std::unique_ptr<sf::Texture> mTexture;
-        bool mHasTexture;
         
-        // Allegiance - default to friendly
-        Allegiance mAllegiance = Allegiance::FRIENDLY;
+        bool mHasTexture;
         
         // Default visibility range - can be overridden by specific building types
         int mVisibilityRange = 2;

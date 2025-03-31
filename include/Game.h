@@ -17,6 +17,8 @@
 #include "economy/InternationalMarkets.h"
 #include "economy/Government.h"
 #include "graphics/SideBar.h"
+#include "projectiles/Projectile.h"
+#include <list>
 
 class Game {
 public:
@@ -58,20 +60,23 @@ private:
     // Track which axis to highlight
     HighlightAxis mCurrentAxis;
     
-    // Use unique_ptr for owned Soldier
-    std::unique_ptr<Soldier> mSoldier;
+    // Store all characters using a list (for stable memory addresses)
+    std::list<std::unique_ptr<Character>> mCharacters;
     
     // This is a non-owning reference, so keep as raw pointer
     std::optional<Character*> mSelectedCharacter;
     
-    // Store cities for the game
-    std::vector<std::unique_ptr<City>> mCities;
+    // Store cities for the game (using list for stable memory addresses)
+    std::list<std::unique_ptr<City>> mCities;
     
-    // Store resources for the game with proper ownership
-    std::vector<std::unique_ptr<Resource>> mResources;
+    // Store resources for the game with proper ownership (using list for stable memory addresses)
+    std::list<std::unique_ptr<Resource>> mResources;
     
-    // Store standalone buildings (like oil refineries) with proper ownership
-    std::vector<std::unique_ptr<Building>> mBuildings;
+    // Store standalone buildings (like oil refineries) with proper ownership (using list for stable memory addresses)
+    std::list<std::unique_ptr<Building>> mBuildings;
+
+    // Using list for projectiles to maintain stable memory addresses
+    std::list<std::unique_ptr<Projectile>> mProjectiles;
     
     // Toggle for fog of war
     bool mFogOfWarEnabled = true;
@@ -115,8 +120,12 @@ private:
     // Handle sidebar cell clicks
     void handleSideBarClick(SideBar::CellId cell);
 
-
     void setCharactersTargetPosition();
+
+    void moveProjectiles();
+
+    // Check collisions and return true if the projectile should be removed
+    bool checkCollisions(Projectile* projectile);
 };
 
 #endif // GAME_H 

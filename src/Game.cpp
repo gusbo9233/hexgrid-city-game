@@ -13,6 +13,7 @@
 #include <optional>
 #include <string>
 #include <limits>
+#include <vector>
 
 Game::Game() 
     : mWindow(sf::VideoMode({1200, 800}), "Hexagonal Grid - WASD to move, Q/R to highlight axes"), 
@@ -25,7 +26,6 @@ Game::Game()
       mSelectedCoord(0, 0, 0),
       mHasSelection(false),
       mCurrentAxis(HighlightAxis::None),
-      mSoldier(nullptr),
       mFogOfWarEnabled(true),
       mSideBar(sf::Vector2f(1200.f, 800.f)) {
     mWindow.setFramerateLimit(60);
@@ -39,9 +39,25 @@ Game::Game()
     // Use GridFiller to populate the grid with cities and resources
     GridFiller gridFiller(mGrid);
     gridFiller.fillGrid();
-    mCities = gridFiller.getCities();
-    mResources = gridFiller.getResources(); // Take ownership of resources
-    mBuildings = gridFiller.getBuildings();
+    
+    // Transfer vector contents to lists
+    auto citiesVector = gridFiller.getCities();
+    for (auto& city : citiesVector) {
+        mCities.push_back(std::move(city));
+    }
+    
+    // Transfer resources
+    auto resourcesVector = gridFiller.getResources();
+    for (auto& resource : resourcesVector) {
+        mResources.push_back(std::move(resource));
+    }
+    
+    // Transfer buildings
+    auto buildingsVector = gridFiller.getBuildings();
+    for (auto& building : buildingsVector) {
+        mBuildings.push_back(std::move(building));
+    }
+    
     mNationalAccounts = NationalAccounts();
     mInternationalMarkets = InternationalMarkets();
     mGovernment = Government();
@@ -57,27 +73,25 @@ Game::Game()
         mGovDataText->setPosition({10.f, 10.f});
     }
     
-    // Starting position for soldier in bottom half of map (positive r value)
-    Hexagon::CubeCoord soldierStartPos = {2, 5, -7};
-    
-    // Get the hex at the bottom half coordinate
-    Hexagon* startHex = mGrid.getHexAt(soldierStartPos);
-    if (startHex) {
-        // Create a soldier at the bottom half coordinate with unique_ptr
-        mSoldier = std::make_unique<Soldier>(soldierStartPos.q, soldierStartPos.r);
-        
-        // Set the soldier in the hex and highlight it
-        startHex->setCharacter(mSoldier.get());
-        
-        // Position the soldier's sprite at the hex's pixel position
-        mSoldier->setPosition(startHex->getPosition());
-    } else {
-        // Fallback: create at origin if hex not found
-        mSoldier = std::make_unique<Soldier>(0, 0);
+    // Transfer characters from GridFiller to Game
+    auto charactersVector = gridFiller.getCharacters();
+    for (auto& character : charactersVector) {
+        mCharacters.push_back(std::move(character));
     }
+    
     mSelectedCharacter = nullptr;
     
-    // Center camera on soldier position
+    // Find a friendly soldier to center the view on
+    Hexagon* startHex = nullptr;
+    for (const auto& character : mCharacters) {
+        if (character->getAllegiance() == Allegiance::FRIENDLY) {
+            // Get the hex at the character's position
+            startHex = mGrid.getHexAt(character->getHexCoord());
+            if (startHex) break;
+        }
+    }
+    
+    // Center camera on friendly soldier position if found
     if (startHex) {
         mCameraPosition = startHex->getPosition();
         mCamera.setCenter(mCameraPosition);
@@ -165,10 +179,13 @@ void Game::onLeftClick(const sf::Vector2f& worldPos) {
             // Highlight character hex in yellow
             hex->highlight(sf::Color::Yellow);
             
-            // Different behavior based on character type
+            // Different behavior based on character type and allegiance
             if (character->isCharacterType(CharacterType::Soldier)) {
-                // Soldiers can move to adjacent hexes
-                mGrid.highlightAdjacentHexes(hex->getCoord(), sf::Color::Green);
+                // Only show movement options for friendly soldiers
+                if (character->getAllegiance() == Allegiance::FRIENDLY) {
+                    // Soldiers can move to adjacent hexes
+                    mGrid.highlightAdjacentHexes(hex->getCoord(), sf::Color::Green);
+                }
             }
             
             // Set the character as selected
@@ -220,6 +237,12 @@ void Game::onRightClick(const sf::Vector2f& worldPos) {
     // Get the hex at the clicked position
     Hexagon* hex = mGrid.getHexAtPixel(worldPos);
     if (hex && mSelectedCharacter.has_value()) {
+        // Check if the selected character is friendly - only allow moving friendly soldiers
+        if (mSelectedCharacter.value()->getAllegiance() != Allegiance::FRIENDLY) {
+            // Cannot move enemy soldiers
+            return;
+        }
+        
         // Get the character from the clicked hex
         Character* character = hex->getCharacter();
         if (!character) {
@@ -338,12 +361,17 @@ void Game::updateCamera(const sf::Vector2f& movement) {
 }
 
 void Game::update() {
-    // No additional updates needed
+    // Update cooldowns for all characters
+    for (auto* character : getCharacters()) {
+        character->updateCooldowns(mDeltaTime);
+    }
+    
     generateProducts();
     // Update visibility for fog of war
     updateVisibility();
     mNationalAccounts.nextDay();
     setCharactersTargetPosition();
+    moveProjectiles();
 }
 
 void Game::render() {
@@ -355,9 +383,22 @@ void Game::render() {
     // Render the grid (which now handles visibility)
     mRenderer.render(mGrid);
     
-    // Render the soldier
-    if (mSoldier) {
-        mRenderer.render(*mSoldier);
+    // Render all characters that are on visible hexes
+    for (const auto& character : mCharacters) {
+        // Get the hex at the character's position
+        Hexagon* hex = mGrid.getHexAt(character->getHexCoord());
+        
+        // Only render the character if its hex is visible or fog of war is disabled
+        if (!mFogOfWarEnabled || (hex && hex->isVisible())) {
+            mRenderer.render(*character);
+        }
+    }
+    
+    // Render all projectiles using the GameObject renderer
+    for (const auto& projectile : mProjectiles) {
+        // For projectiles, we could check if they're in visible area
+        // But for gameplay purposes, always show projectiles
+        mRenderer.render(*projectile);
     }
     
     // Store the current view
@@ -469,12 +510,10 @@ void Game::toggleFogOfWar() {
 std::vector<Character*> Game::getCharacters() const {
     std::vector<Character*> characters;
     
-    // Add the soldier if it exists
-    if (mSoldier) {
-        characters.push_back(mSoldier.get());
+    // Add all characters from the list
+    for (const auto& character : mCharacters) {
+        characters.push_back(character.get());
     }
-    
-    // Add any other characters here
     
     return characters;
 }
@@ -482,11 +521,16 @@ std::vector<Character*> Game::getCharacters() const {
 std::vector<Building*> Game::getBuildings() const {
     std::vector<Building*> buildings;
     
-    //search for all buildings in the grid
+    // Search for all buildings in the grid
     for (const auto& hex : mGrid.getAllHexes()) {
         if (hex->hasBuilding()) {
             buildings.push_back(hex->getBuilding());
         }
+    }
+    
+    // Also add buildings from our list
+    for (const auto& building : mBuildings) {
+        buildings.push_back(building.get());
     }
     
     return buildings;
@@ -536,35 +580,87 @@ void Game::setCharactersTargetPosition() {
     for (const auto& character : getCharacters()) {
         std::vector<Hexagon*> hexesInRange = mGrid.getHexesInRange(character->getHexCoord(), character->getRange());
         
+        std::cout << "Character at (" << character->getQ() << "," << character->getR() 
+                  << ") with range " << character->getRange()
+                  << " found " << hexesInRange.size() << " hexes in range" << std::endl;
+        
         // Clear any existing target
         character->clearTargetPosition();
         
+        // HIGHEST PRIORITY: Check for ADJACENT enemy characters first
+        Character* adjacentEnemy = nullptr;
+        std::vector<Hexagon::CubeCoord> adjacentHexes = mGrid.getAdjacentHexes(character->getHexCoord());
+        
+        for (const auto& adjacentCoord : adjacentHexes) {
+            Hexagon* adjacentHex = mGrid.getHexAt(adjacentCoord);
+            if (adjacentHex && adjacentHex->hasCharacter()) {
+                Character* targetCharacter = adjacentHex->getCharacter();
+                if (targetCharacter->getAllegiance() != character->getAllegiance()) {
+                    adjacentEnemy = targetCharacter;
+                    std::cout << "Found ADJACENT enemy at (" << adjacentCoord.q << "," 
+                              << adjacentCoord.r << ")" << std::endl;
+                    break; // Found an adjacent enemy, no need to check others
+                }
+            }
+        }
+        
+        // If we found an adjacent enemy, immediately target it with highest priority
+        if (adjacentEnemy) {
+            sf::Vector2f targetPos = Hexagon::cubeToPixel(adjacentEnemy->getHexCoord(), 25.0f);
+            character->setTargetPosition(targetPos);
+            std::cout << "Setting ADJACENT enemy as target at position: (" 
+                      << targetPos.x << "," << targetPos.y << ")" << std::endl;
+                    
+            // Try to shoot at the adjacent enemy
+            std::optional<Projectile> projectile = character->shootProjectile();
+            if (projectile) {
+                std::cout << "Shot projectile at adjacent enemy" << std::endl;
+                mProjectiles.push_back(std::make_unique<Projectile>(std::move(projectile.value())));
+            }
+            continue; // Skip the rest of the targeting logic
+        }
+        
+        // If no adjacent enemies, then proceed with the original targeting logic
         // First try to find the closest enemy character in range
         float closestCharacterDistance = std::numeric_limits<float>::max();
         Character* closestCharacter = nullptr;
+        
+        int enemyCharactersFound = 0;
         
         for (const auto& hex : hexesInRange) {
             if (hex->hasCharacter()) {
                 Character* targetCharacter = hex->getCharacter();
                 
+                std::cout << "  Found character at hex (" << hex->getCoord().q << "," << hex->getCoord().r
+                          << ") with allegiance " << (targetCharacter->getAllegiance() == Allegiance::FRIENDLY ? "FRIENDLY" : "ENEMY")
+                          << " (our allegiance: " << (character->getAllegiance() == Allegiance::FRIENDLY ? "FRIENDLY" : "ENEMY") << ")" << std::endl;
+                
                 // Check if it's an enemy to our character (don't target friendlies)
                 if (targetCharacter->getAllegiance() != character->getAllegiance()) {
+                    enemyCharactersFound++;
                     
                     // Calculate distance
                     float distance = Hexagon::distance(character->getHexCoord(), targetCharacter->getHexCoord());
                     
+                    std::cout << "    Enemy character found at distance " << distance << std::endl;
+                    
                     if (distance < closestCharacterDistance) {
                         closestCharacterDistance = distance;
                         closestCharacter = targetCharacter;
+                        std::cout << "    This is the closest enemy so far" << std::endl;
                     }
                 }
             }
         }
         
+        std::cout << "Found " << enemyCharactersFound << " enemy characters in range" << std::endl;
+        
         // If we found a character in range, set it as the target
         if (closestCharacter) {
             sf::Vector2f targetPos = Hexagon::cubeToPixel(closestCharacter->getHexCoord(), 25.0f);
             character->setTargetPosition(targetPos);
+            std::cout << "Setting closest character as target at position: (" 
+                      << targetPos.x << "," << targetPos.y << ")" << std::endl;
             continue; // We're done with this character
         }
         
@@ -572,12 +668,16 @@ void Game::setCharactersTargetPosition() {
         float closestBuildingDistance = std::numeric_limits<float>::max();
         Building* closestBuilding = nullptr;
         
+        int enemyBuildingsFound = 0;
+        
         for (const auto& hex : hexesInRange) {
             if (hex->hasBuilding()) {
                 Building* targetBuilding = hex->getBuilding();
                 
                 // Only target buildings of opposing allegiance
                 if (targetBuilding->getAllegiance() != character->getAllegiance()) {
+                    enemyBuildingsFound++;
+                    
                     // Calculate distance
                     float distance = Hexagon::distance(character->getHexCoord(), hex->getCoord());
                     
@@ -589,14 +689,25 @@ void Game::setCharactersTargetPosition() {
             }
         }
         
+        std::cout << "Found " << enemyBuildingsFound << " enemy buildings in range" << std::endl;
+        
         // If we found a building in range, set it as the target
         if (closestBuilding) {
             sf::Vector2f targetPos = closestBuilding->getPosition();
             character->setTargetPosition(targetPos);
+            std::cout << "Setting building as target at position: (" 
+                      << targetPos.x << "," << targetPos.y << ")" << std::endl;
         }
         
         // Debug output only if character has a target
         if (character->hasTarget()) {
+            std::optional<Projectile> projectile = character->shootProjectile();
+            if (projectile) {
+                std::cout << "Shot projectile" << std::endl;
+                // Store the projectile in our collection
+                // Since Character::shootProjectile already returns the correct projectile type (Bullet)
+                mProjectiles.push_back(std::make_unique<Projectile>(std::move(projectile.value())));
+            }
             std::cout << "Character has target at: " << character->getTargetPosition().x << ", " 
                       << character->getTargetPosition().y << std::endl;
         } else {
@@ -604,3 +715,81 @@ void Game::setCharactersTargetPosition() {
         }
     }
 }
+
+void Game::moveProjectiles() {
+    // Update all projectiles
+    for (auto it = mProjectiles.begin(); it != mProjectiles.end();) {
+        (*it)->update();
+        // Print projectile position
+        //std::cout << "Projectile position: " << (*it)->getPosition().x << ", " << (*it)->getPosition().y << std::endl;
+        
+        // Check for collisions and get whether to remove the projectile
+        bool removeProjectile = checkCollisions(it->get());
+        
+        // Either remove the projectile or advance to the next one
+        if (removeProjectile) {
+            it = mProjectiles.erase(it); // erase() returns iterator to next element
+        } else {
+            ++it;
+        }
+    }
+}
+
+bool Game::checkCollisions(Projectile* projectile) {
+    // Check if the projectile is colliding with any buildings
+    for (const auto& building : getBuildings()) {
+        if (building->getAllegiance() != projectile->getAllegiance()) {
+            auto intersection = projectile->getBoundingBox().findIntersection(building->getBoundingBox());
+            if (intersection.has_value()) {
+                // Handle collision with the building
+                std::cout << "Projectile collided with building" << std::endl;
+                building->takeDamage(projectile->getDamage());
+                return true; // Remove projectile
+            }
+        }
+    }
+    
+    // Get characters for collision testing
+    auto characters = getCharacters();
+    
+    for (auto character : characters) {
+        if (character->getAllegiance() != projectile->getAllegiance()) {
+            auto intersection = projectile->getBoundingBox().findIntersection(character->getBoundingBox());
+            if (intersection.has_value()) {
+                character->takeDamage(projectile->getDamage());
+                std::cout << "Projectile collided with character" << std::endl;
+                
+                // Check if the character is dead after taking damage
+                if (character->isDead()) {
+                    std::cout << "Character died, removing from hex and game" << std::endl;
+                    
+                    // Find the hex containing this character and remove it
+                    Hexagon* hex = mGrid.getHexAt(character->getHexCoord());
+                    if (hex) {
+                        hex->removeCharacter();
+                    }
+                    
+                    // Find and remove the character from our list (which will delete it)
+                    auto it = std::find_if(mCharacters.begin(), mCharacters.end(),
+                        [character](const std::unique_ptr<Character>& c) {
+                            return c.get() == character;
+                        });
+                    
+                    if (it != mCharacters.end()) {
+                        // If this was the selected character, clear the selection
+                        if (mSelectedCharacter.has_value() && mSelectedCharacter.value() == character) {
+                            mSelectedCharacter.reset();
+                        }
+                        
+                        // Erase from the list (which will call the destructor via unique_ptr)
+                        mCharacters.erase(it);
+                    }
+                }
+                
+                return true; // Remove projectile
+            }
+        }
+    }
+    
+    return false; // Don't remove the projectile
+}   

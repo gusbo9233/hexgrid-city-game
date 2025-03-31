@@ -76,19 +76,17 @@ Hexagon::CubeCoord Hexagon::getCoord() const {
 }
 
 void Hexagon::draw(sf::RenderWindow& window) const {
-    // Draw the hexagon shape
     window.draw(mShape);
 
+    // Render resource if present
     if (mResource.has_value() && *mResource) {
         (*mResource)->render(window);
     }
     
-    // If there's a building on this hex, draw it too
+    // Render building if present
     if (mBuilding.has_value() && *mBuilding) {
-        (*mBuilding)->draw(window);
+        (*mBuilding)->render(window);
     }
-
-    
 }
 
 // Pointy-top hexagon layout

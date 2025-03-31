@@ -3,7 +3,7 @@
 
 #include <SFML/Graphics.hpp>
 #include "HexGrid.h"
-#include "../characters/Character.h"
+#include "../GameObject.h"
 
 class Renderer {
 public:
@@ -12,8 +12,8 @@ public:
     // Main render function
     void render(const HexGrid& grid);
     
-    // Render a character
-    void render(const Character& character);
+    // Generic render function for any GameObject
+    void render(const GameObject& gameObject);
     
     // Clear the screen with background color
     void clear();

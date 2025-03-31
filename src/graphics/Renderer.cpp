@@ -15,12 +15,10 @@ void Renderer::render(const HexGrid& grid) {
     }
 }
 
-void Renderer::render(const Character& character) {
-    // Only render the character if it's on a visible hex
-    const Hexagon::CubeCoord& charCoord = character.getHexCoord();
-    // We would need a way to check if this hex is visible
-    // For now, let's assume characters are only rendered if they're in visible areas
-    character.render(mWindow);
+// Generic render method for any GameObject
+void Renderer::render(const GameObject& gameObject) {
+    // Use the GameObject's render method to render itself
+    gameObject.render(mWindow);
 }
 
 void Renderer::clear() {
@@ -50,7 +48,6 @@ void Renderer::renderHex(sf::RenderWindow& window, const Hexagon* hex) {
         // For non-visible hexes, show only black fog
         renderFogOfWar(window, hex);
     }
-
 }
 
 void Renderer::renderFogOfWar(sf::RenderWindow& window, const Hexagon* hex) {

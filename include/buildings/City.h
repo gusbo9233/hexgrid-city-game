@@ -31,6 +31,11 @@ class City {
         
         // Allegiance accessor
         Allegiance getAllegiance() const { return mAllegiance; }
+        
+        // Get the city's hexes
+        const std::vector<Hexagon*>& getHexes() const {
+            return cityHexes;
+        }
 
     private:
         std::vector<Hexagon*> cityHexes;

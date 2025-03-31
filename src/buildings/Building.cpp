@@ -3,7 +3,7 @@
 #include <iostream>
 
 Building::Building(const sf::Vector2f& position, Allegiance allegiance)
-    : mPosition(position), mHasTexture(false), mAllegiance(allegiance) {
+    : GameObject(position.x, position.y, allegiance), mHasTexture(false) {
     // We'll initialize the shape in initializeShape() which should be called by derived classes
     // in their constructors after the Building constructor finishes
 }
@@ -22,13 +22,15 @@ void Building::initializeShape() {
     size.y *= getScaleFactor();
     
     // Setup the shape
-    mShape.setPosition(mPosition);
+    sf::Vector2f position = getPosition();
+    mShape.setPosition(position);
     mShape.setSize(size);
     
-    if (mHasTexture && mTexture) {
-        mShape.setTexture(mTexture.get());
+    if (mHasTexture) {
         // No outline for textured buildings
         mShape.setOutlineThickness(0.f);
+        
+        // The actual rendering will be done by GameObject's drawing functionality
     } else {
         // Fallback to colored square with outline
         mShape.setFillColor(sf::Color(200, 200, 200));
@@ -42,28 +44,61 @@ void Building::initializeShape() {
 }
 
 bool Building::tryLoadTexture(const std::string& imagePath) {
-    mTexture = std::make_unique<sf::Texture>();
-    if (!mTexture->loadFromFile(imagePath)) {
-        std::cerr << "Failed to load texture: " << imagePath << std::endl;
-        mTexture.reset();
-        return false;
+    // Use GameObject's loadTexture method
+    return loadTexture(imagePath);
+}
+
+// Default implementation of doRender
+void Building::doRender(sf::RenderWindow& window) const {
+    // Let the GameObject handle sprite drawing, this is just for non-textured fallback
+    if (!mHasTexture) {
+        window.draw(mShape);
+    } else {
+        // Call parent class implementation to render the sprite
+        GameObject::doRender(window);
     }
-    return true;
 }
 
-void Building::setPosition(const sf::Vector2f& position) {
-    mPosition = position;
-    mShape.setPosition(mPosition);
+void Building::takeDamage(int damage) {
+    // First reduce defenses, then health
+    if (defenses > 0) {
+        defenses -= damage;
+        if (defenses < 0) {
+            // If damage exceeds defenses, carry over to health
+            health += defenses; // defenses is negative here
+            defenses = 0;
+        }
+    } else {
+        // No defenses left, damage health directly
+        health -= damage;
+    }
+    
+    // Health can't go below 0
+    if (health < 0) {
+        health = 0;
+    }
+    
+    std::cout << "Building damaged! Health: " << health << ", Defenses: " << defenses << std::endl;
 }
 
-// Non-Virtual Interface (NVI) pattern implementation
-void Building::draw(sf::RenderWindow& window) const {
-    // Common pre-processing could go here
-    doDraw(window);
-    // Common post-processing could go here
-}
-
-// Default implementation of doDraw
-void Building::doDraw(sf::RenderWindow& window) const {
-    window.draw(mShape);
+void Building::repair(int amount) {
+    // First repair health, then defenses
+    if (health < maxHealth) {
+        health += amount;
+        if (health > maxHealth) {
+            // If repair exceeds max health, carry over to defenses
+            int excess = health - maxHealth;
+            health = maxHealth;
+            defenses += excess;
+            if (defenses > maxDefenses) {
+                defenses = maxDefenses;
+            }
+        }
+    } else {
+        // Health is full, repair defenses
+        defenses += amount;
+        if (defenses > maxDefenses) {
+            defenses = maxDefenses;
+        }
+    }
 } 

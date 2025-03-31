@@ -18,10 +18,12 @@ add_executable(CPPGame
     src/InputHandler.cpp
     src/Player.cpp
     src/City.cpp
+    src/GameObject.cpp
     
     # Character files
     src/characters/Character.cpp
     src/characters/Soldier.cpp
+    src/characters/Tank.cpp
     
     # Building files
     src/buildings/Building.cpp
@@ -41,6 +43,7 @@ add_executable(CPPGame
     src/graphics/VisibilitySystem.cpp
     src/graphics/GridFiller.cpp
     src/graphics/SideBar.cpp
+    src/graphics/TextureManager.cpp
     
     # Resource files
     src/resources/Resource.cpp
@@ -48,6 +51,9 @@ add_executable(CPPGame
     
     # Projectile files
     src/projectiles/projectile.cpp
+    src/projectiles/Bullet.cpp
+    src/projectiles/TankAmmo.cpp
+    src/projectiles/ProjectileFactory.cpp
     
     # Economy files
     src/economy/NationalAccounts.cpp
