@@ -10,6 +10,12 @@ Character::Character(int q, int r, Allegiance allegiance)
       attackPower(10), defensePower(5), speed(1), range(1),
       mTargetPosition(std::nullopt) {
     // Position will be set externally based on hex coordinates
+    
+    // Initialize with empty traversable terrain
+    // Derived classes should set their own traversable terrain types
+    mTraversableTerrain = { };
+    
+    // std::cout << "Base Character constructor: Created empty traversable terrain list" << std::endl;
 }
 
 void Character::setPosition(const sf::Vector2f& pixelPos) {

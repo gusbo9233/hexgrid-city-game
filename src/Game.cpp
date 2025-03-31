@@ -180,13 +180,20 @@ void Game::onLeftClick(const sf::Vector2f& worldPos) {
             hex->highlight(sf::Color::Yellow);
             
             // Different behavior based on character type and allegiance
-            if (character->isCharacterType(CharacterType::Soldier)) {
+            
                 // Only show movement options for friendly soldiers
                 if (character->getAllegiance() == Allegiance::FRIENDLY) {
-                    // Soldiers can move to adjacent hexes
-                    mGrid.highlightAdjacentHexes(hex->getCoord(), sf::Color::Green);
+                    // Debug which terrain types are traversable for this character
+                    std::cout << "Character's traversable terrain types: ";
+                    for (const auto& terrainType : character->getTraversableTerrain()) {
+                        std::cout << static_cast<int>(terrainType) << " ";
+                    }
+                    std::cout << std::endl;
+                    
+                    // Highlight only hexes that are both adjacent and have traversable terrain
+                    mGrid.highlightAdjacentHexes(hex->getCoord(), sf::Color::Green, character->getTraversableTerrain());
                 }
-            }
+            
             
             // Set the character as selected
             mSelectedCharacter = character;
@@ -277,6 +284,42 @@ void Game::moveSelectedCharacter(Hexagon* source, Hexagon* target, Character* ch
         if (target->hasCharacter()) {
             return;
         }
+        
+        // Debug output to help diagnose terrain-related issues
+        TerrainType targetTerrainType = target->getTerrainType();
+        /*
+        std::cout << "\n=== MOVEMENT DEBUG ===\n";
+        std::cout << "Character type: " << static_cast<int>(character->getType()) << std::endl;
+        std::cout << "Moving from: (" << source->getCoord().q << "," << source->getCoord().r << ") to (" << 
+                     target->getCoord().q << "," << target->getCoord().r << ")" << std::endl;
+        std::cout << "Target hex terrain type: " << static_cast<int>(targetTerrainType) 
+                  << " (0=PLAINS, 1=WATER, 2=FOREST, 3=URBAN)" << std::endl;
+        
+        std::cout << "Character's traversable terrain types: ";
+        for (const auto& terrainType : character->getTraversableTerrain()) {
+            std::cout << static_cast<int>(terrainType) << " ";
+        }
+        std::cout << std::endl;
+        */
+        
+        // Check if the target hex is traversable
+        bool canTraverse = false;
+        for (const auto& terrainType : character->getTraversableTerrain()) {
+            if (terrainType == target->getTerrainType()) {
+                canTraverse = true;
+                break;
+            }
+        }
+        
+        if (!canTraverse) {
+            // std::cout << "DENIED: Cannot move to this terrain type - not in traversable terrain list" << std::endl;
+            // std::cout << "========================\n";
+            return;
+        }
+        
+        // std::cout << "APPROVED: Moving character to new position" << std::endl;
+        // std::cout << "========================\n";
+        
         // Remove the character from the source hex
         source->removeCharacter();
 
@@ -288,6 +331,7 @@ void Game::moveSelectedCharacter(Hexagon* source, Hexagon* target, Character* ch
         
         // Make sure the character's hex coordinates are updated
         character->setHexCoord(target->getCoord());
+        // std::cout << "Character moved to (" << character->getHexCoord().q << "," << character->getHexCoord().r << ")" << std::endl;
     }
 }
 
@@ -550,8 +594,8 @@ void Game::generateProducts() {
             bool soldProduct = workplace->sellProduct(workplace->getProductType(), 1, sellPrice - taxAmount);
             if (soldProduct) {
                 mGovernment.addMoney(taxAmount);
-                std::cout << "Sold product for " << sellPrice << " money" << std::endl;
-                std::cout<<mGovernment.getMoney()<<std::endl;
+                //std::cout << "Sold product for " << sellPrice << " money" << std::endl;
+                //std::cout<<mGovernment.getMoney()<<std::endl;
             }
         }
     }
@@ -580,9 +624,9 @@ void Game::setCharactersTargetPosition() {
     for (const auto& character : getCharacters()) {
         std::vector<Hexagon*> hexesInRange = mGrid.getHexesInRange(character->getHexCoord(), character->getRange());
         
-        std::cout << "Character at (" << character->getQ() << "," << character->getR() 
-                  << ") with range " << character->getRange()
-                  << " found " << hexesInRange.size() << " hexes in range" << std::endl;
+        //std::cout << "Character at (" << character->getQ() << "," << character->getR() 
+        //          << ") with range " << character->getRange()
+        //          << " found " << hexesInRange.size() << " hexes in range" << std::endl;
         
         // Clear any existing target
         character->clearTargetPosition();
@@ -597,8 +641,8 @@ void Game::setCharactersTargetPosition() {
                 Character* targetCharacter = adjacentHex->getCharacter();
                 if (targetCharacter->getAllegiance() != character->getAllegiance()) {
                     adjacentEnemy = targetCharacter;
-                    std::cout << "Found ADJACENT enemy at (" << adjacentCoord.q << "," 
-                              << adjacentCoord.r << ")" << std::endl;
+                    //std::cout << "Found ADJACENT enemy at (" << adjacentCoord.q << "," 
+                    //          << adjacentCoord.r << ")" << std::endl;
                     break; // Found an adjacent enemy, no need to check others
                 }
             }
@@ -608,13 +652,13 @@ void Game::setCharactersTargetPosition() {
         if (adjacentEnemy) {
             sf::Vector2f targetPos = Hexagon::cubeToPixel(adjacentEnemy->getHexCoord(), 25.0f);
             character->setTargetPosition(targetPos);
-            std::cout << "Setting ADJACENT enemy as target at position: (" 
-                      << targetPos.x << "," << targetPos.y << ")" << std::endl;
+            //std::cout << "Setting ADJACENT enemy as target at position: (" 
+            //          << targetPos.x << "," << targetPos.y << ")" << std::endl;
                     
             // Try to shoot at the adjacent enemy
             std::optional<Projectile> projectile = character->shootProjectile();
             if (projectile) {
-                std::cout << "Shot projectile at adjacent enemy" << std::endl;
+                //std::cout << "Shot projectile at adjacent enemy" << std::endl;
                 mProjectiles.push_back(std::make_unique<Projectile>(std::move(projectile.value())));
             }
             continue; // Skip the rest of the targeting logic
@@ -631,9 +675,9 @@ void Game::setCharactersTargetPosition() {
             if (hex->hasCharacter()) {
                 Character* targetCharacter = hex->getCharacter();
                 
-                std::cout << "  Found character at hex (" << hex->getCoord().q << "," << hex->getCoord().r
-                          << ") with allegiance " << (targetCharacter->getAllegiance() == Allegiance::FRIENDLY ? "FRIENDLY" : "ENEMY")
-                          << " (our allegiance: " << (character->getAllegiance() == Allegiance::FRIENDLY ? "FRIENDLY" : "ENEMY") << ")" << std::endl;
+                //std::cout << "  Found character at hex (" << hex->getCoord().q << "," << hex->getCoord().r
+                //          << ") with allegiance " << (targetCharacter->getAllegiance() == Allegiance::FRIENDLY ? "FRIENDLY" : "ENEMY")
+                //          << " (our allegiance: " << (character->getAllegiance() == Allegiance::FRIENDLY ? "FRIENDLY" : "ENEMY") << ")" << std::endl;
                 
                 // Check if it's an enemy to our character (don't target friendlies)
                 if (targetCharacter->getAllegiance() != character->getAllegiance()) {
@@ -642,25 +686,25 @@ void Game::setCharactersTargetPosition() {
                     // Calculate distance
                     float distance = Hexagon::distance(character->getHexCoord(), targetCharacter->getHexCoord());
                     
-                    std::cout << "    Enemy character found at distance " << distance << std::endl;
+                    //std::cout << "    Enemy character found at distance " << distance << std::endl;
                     
                     if (distance < closestCharacterDistance) {
                         closestCharacterDistance = distance;
                         closestCharacter = targetCharacter;
-                        std::cout << "    This is the closest enemy so far" << std::endl;
+                        //std::cout << "    This is the closest enemy so far" << std::endl;
                     }
                 }
             }
         }
         
-        std::cout << "Found " << enemyCharactersFound << " enemy characters in range" << std::endl;
+        //std::cout << "Found " << enemyCharactersFound << " enemy characters in range" << std::endl;
         
         // If we found a character in range, set it as the target
         if (closestCharacter) {
             sf::Vector2f targetPos = Hexagon::cubeToPixel(closestCharacter->getHexCoord(), 25.0f);
             character->setTargetPosition(targetPos);
-            std::cout << "Setting closest character as target at position: (" 
-                      << targetPos.x << "," << targetPos.y << ")" << std::endl;
+            //std::cout << "Setting closest character as target at position: (" 
+            //          << targetPos.x << "," << targetPos.y << ")" << std::endl;
             continue; // We're done with this character
         }
         
@@ -689,29 +733,29 @@ void Game::setCharactersTargetPosition() {
             }
         }
         
-        std::cout << "Found " << enemyBuildingsFound << " enemy buildings in range" << std::endl;
+        //std::cout << "Found " << enemyBuildingsFound << " enemy buildings in range" << std::endl;
         
         // If we found a building in range, set it as the target
         if (closestBuilding) {
             sf::Vector2f targetPos = closestBuilding->getPosition();
             character->setTargetPosition(targetPos);
-            std::cout << "Setting building as target at position: (" 
-                      << targetPos.x << "," << targetPos.y << ")" << std::endl;
+            //std::cout << "Setting building as target at position: (" 
+            //          << targetPos.x << "," << targetPos.y << ")" << std::endl;
         }
         
         // Debug output only if character has a target
         if (character->hasTarget()) {
             std::optional<Projectile> projectile = character->shootProjectile();
             if (projectile) {
-                std::cout << "Shot projectile" << std::endl;
+                //std::cout << "Shot projectile" << std::endl;
                 // Store the projectile in our collection
                 // Since Character::shootProjectile already returns the correct projectile type (Bullet)
                 mProjectiles.push_back(std::make_unique<Projectile>(std::move(projectile.value())));
             }
-            std::cout << "Character has target at: " << character->getTargetPosition().x << ", " 
-                      << character->getTargetPosition().y << std::endl;
+            //std::cout << "Character has target at: " << character->getTargetPosition().x << ", " 
+            //          << character->getTargetPosition().y << std::endl;
         } else {
-            std::cout << "Character has no target" << std::endl;
+            //std::cout << "Character has no target" << std::endl;
         }
     }
 }
@@ -742,7 +786,7 @@ bool Game::checkCollisions(Projectile* projectile) {
             auto intersection = projectile->getBoundingBox().findIntersection(building->getBoundingBox());
             if (intersection.has_value()) {
                 // Handle collision with the building
-                std::cout << "Projectile collided with building" << std::endl;
+                //std::cout << "Projectile collided with building" << std::endl;
                 building->takeDamage(projectile->getDamage());
                 return true; // Remove projectile
             }
@@ -757,11 +801,11 @@ bool Game::checkCollisions(Projectile* projectile) {
             auto intersection = projectile->getBoundingBox().findIntersection(character->getBoundingBox());
             if (intersection.has_value()) {
                 character->takeDamage(projectile->getDamage());
-                std::cout << "Projectile collided with character" << std::endl;
+                //std::cout << "Projectile collided with character" << std::endl;
                 
                 // Check if the character is dead after taking damage
                 if (character->isDead()) {
-                    std::cout << "Character died, removing from hex and game" << std::endl;
+                    //std::cout << "Character died, removing from hex and game" << std::endl;
                     
                     // Find the hex containing this character and remove it
                     Hexagon* hex = mGrid.getHexAt(character->getHexCoord());

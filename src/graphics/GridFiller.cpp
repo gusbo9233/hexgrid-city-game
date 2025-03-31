@@ -8,7 +8,7 @@
 #include "../../include/business/workplaces/OilRefinery.h"
 #include "../../include/business/workplaces/Farm.h"
 #include "../../include/characters/Tank.h"
-
+#include "../../include/buildings/ResidentialArea.h"
 GridFiller::GridFiller(HexGrid& grid) : mGrid(grid) {
     std::cout << "GridFiller constructor" << std::endl;
     // No additional initialization needed
@@ -43,6 +43,10 @@ void GridFiller::fillGrid() {
     // Generate tanks
     generateTank(Allegiance::FRIENDLY);
     generateTank(Allegiance::ENEMY);
+    
+    // Generate residential areas
+    generateResidentialAreas(Allegiance::FRIENDLY);
+    generateResidentialAreas(Allegiance::ENEMY);
     
     std::cout << "GridFiller::fillGrid() complete, created " << mCities.size() << " cities, " 
               << mResources.size() << " resources, " << mCharacters.size() << " characters" << std::endl;
@@ -182,8 +186,62 @@ void GridFiller::generateSoldiers(Allegiance allegiance) {
         }
     }
     
-    std::cout << "GridFiller::generateSoldiers() complete, placed " << soldiersPlaced 
-              << " soldiers for " << (allegiance == Allegiance::FRIENDLY ? "friendly" : "enemy") << " cities" << std::endl;
+   
+}
+
+void GridFiller::generateResidentialAreas(Allegiance allegiance) {
+    
+    
+    // We'll place one soldier per city of the specified allegiance
+    int residentialAreasPlaced = 0;
+    
+    // Get all cities with the matching allegiance
+    for (const auto& city : mCities) {
+        if (city->getAllegiance() == allegiance) {
+            // Get all hexes for this city
+            const auto& cityHexes = city->getHexes();
+            
+            // Filter to find hexes without characters
+            std::vector<Hexagon*> availableHexes;
+            for (auto hex : cityHexes) {
+                if (!hex->hasBuilding()) {
+                    availableHexes.push_back(hex);
+                }
+            }
+            
+            if (!availableHexes.empty()) {
+                // Choose a random hex in the city
+                std::random_device rd;
+                std::mt19937 gen(rd());
+                std::uniform_int_distribution<> dist(0, availableHexes.size() - 1);
+                Hexagon* selectedHex = availableHexes[dist(gen)];
+                
+                // Create coordinates from the selected hex
+                Hexagon::CubeCoord coord = selectedHex->getCoord();
+                
+                // Create a new ResidentialArea with position and allegiance
+                auto residentialArea = std::make_unique<ResidentialArea>(selectedHex->getPosition(), allegiance);
+                
+                // Position the ResidentialArea's sprite at the hex's position
+                residentialArea->setPosition(selectedHex->getPosition());
+                
+                // Get a raw pointer before moving it to the list
+                ResidentialArea* residentialAreaPtr = residentialArea.get();
+                
+                // Set the soldier in the hex
+                selectedHex->setBuilding(residentialAreaPtr);
+                
+                // Add to character list
+                mBuildings.push_back(std::move(residentialArea));
+                
+                residentialAreasPlaced++;
+                std::cout << "Placed a residential area in city at (" 
+                          << coord.q << "," << coord.r << "," << coord.s << ")" << std::endl;
+            }
+        }
+    }
+    
+   
 }
 
 void GridFiller::generateCities(Allegiance allegiance) {

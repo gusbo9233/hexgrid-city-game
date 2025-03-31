@@ -2,6 +2,7 @@
 #include "../../include/graphics/PerlinNoise.h"
 #include <limits>
 #include <ctime>
+#include <iostream>
 
 
 HexGrid::HexGrid(int radius) : mRadius(radius) {
@@ -151,12 +152,31 @@ void HexGrid::highlightHexes(const std::function<bool(const Hexagon::CubeCoord&)
     }
 }
 
-void HexGrid::highlightAdjacentHexes(const Hexagon::CubeCoord& coord, sf::Color color) {
+void HexGrid::highlightAdjacentHexes(const Hexagon::CubeCoord& coord, sf::Color color, std::vector<TerrainType> traversableTerrain) {
+    std::cout << "Highlighting adjacent hexes from (" << coord.q << "," << coord.r << ")" << std::endl;
+    std::cout << "Traversable terrain types: ";
+    for (const auto& terrainType : traversableTerrain) {
+        std::cout << static_cast<int>(terrainType) << " ";
+    }
+    std::cout << std::endl;
+    
     auto adjacentHexes = getAdjacentHexes(coord);
+    std::cout << "Found " << adjacentHexes.size() << " adjacent hexes" << std::endl;
+    
     for (const auto& adjCoord : adjacentHexes) {
         auto hexIter = mHexagons.find(adjCoord);
         if (hexIter != mHexagons.end()) {
-            hexIter->second->highlight(color);   
+            TerrainType hexTerrainType = hexIter->second->getTerrainType();
+            std::cout << "  Adjacent hex at (" << adjCoord.q << "," << adjCoord.r << ") has terrain type: " 
+                      << static_cast<int>(hexTerrainType) << std::endl;
+            
+            bool canTraverse = std::find(traversableTerrain.begin(), traversableTerrain.end(), hexTerrainType) != traversableTerrain.end();
+            std::cout << "  Can traverse: " << (canTraverse ? "YES" : "NO") << std::endl;
+            
+            if (canTraverse) {
+                hexIter->second->highlight(color);
+                std::cout << "  Highlighting this hex" << std::endl;
+            }
         }
     }
 }

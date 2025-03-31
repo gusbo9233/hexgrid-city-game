@@ -42,6 +42,7 @@ public:
     void generateFarms(Allegiance allegiance);
     void generateSoldiers(Allegiance allegiance);
     void generateTank(Allegiance allegiance); 
+    void generateResidentialAreas(Allegiance allegiance);
 private:
     // Helper method to place oil resources in a specific area
     int placeOilResources(std::vector<Hexagon*>& emptyHexes, int count, std::mt19937& gen, Allegiance allegiance);
@@ -51,6 +52,7 @@ private:
     std::vector<std::unique_ptr<Resource>> mResources;
     std::vector<std::unique_ptr<Building>> mBuildings;
     std::vector<std::unique_ptr<Character>> mCharacters;
+
 };
 
 #endif // GRID_FILLER_H 

@@ -59,6 +59,10 @@ add_executable(CPPGame
     src/economy/NationalAccounts.cpp
     src/economy/InternationalMarkets.cpp
     src/economy/Government.cpp
+
+    # Civilian files
+    src/civilians/Individual.cpp
+    src/civilians/Household.cpp
 )
 
 # Link SFML libraries

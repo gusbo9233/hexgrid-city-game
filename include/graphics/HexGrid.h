@@ -61,7 +61,7 @@ public:
     bool areAdjacent(const Hexagon::CubeCoord& coord1, const Hexagon::CubeCoord& coord2);
 
     // Highlight adjacent hexes
-    void highlightAdjacentHexes(const Hexagon::CubeCoord& coord, sf::Color color);
+    void highlightAdjacentHexes(const Hexagon::CubeCoord& coord, sf::Color colo, std::vector<TerrainType> traversableTerrain);
     
     // Get all hexes within a certain range of a center hex
     std::vector<Hexagon*> getHexesInRange(const Hexagon::CubeCoord& center, int range);

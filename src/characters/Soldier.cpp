@@ -9,6 +9,7 @@ Soldier::Soldier(int q, int r) : Character(q, r) {
     setVisibilityRange(SOLDIER_VISIBILITY_RANGE);
     mProjectileType = ProjectileType::BULLET;
     shootCooldown = 60;  // Shorter cooldown for faster shooting
+    mTraversableTerrain = {TerrainType::PLAINS, TerrainType::URBAN, TerrainType::FOREST};
     
     // Set combat properties
     range = 1;  // Increase range to allow targeting from further away

@@ -8,6 +8,8 @@
 class ResidentialArea final : public Building {
     public:
         ResidentialArea();
+        // Add constructor with position and allegiance
+        ResidentialArea(const sf::Vector2f& position, Allegiance allegiance);
         ~ResidentialArea() override;
         
         // Implement type identification
@@ -16,7 +18,7 @@ class ResidentialArea final : public Building {
         // Override for custom behavior
         void update(float deltaTime) override;
         
-    protected:
+    private:
         // Building constants
         static constexpr float RESIDENTIAL_SCALE = 1.1f;
         static constexpr int RESIDENTIAL_VISIBILITY_RANGE = 3; // Residential areas have moderate visibility
@@ -24,9 +26,7 @@ class ResidentialArea final : public Building {
         // Override for appearance customization
         float getScaleFactor() const override { return 1.0f; }
         sf::Vector2f getSize() const override { return {STANDARD_SIZE * RESIDENTIAL_SCALE, STANDARD_SIZE * RESIDENTIAL_SCALE}; }
-        std::string getImagePath() const override { return "assets/images/ResidentialArea.png"; }
-        
-    private:
+        std::string getImagePath() const override { return "assets/images/Residentialarea.png"; }
         std::vector<Household*> households;
 };
 

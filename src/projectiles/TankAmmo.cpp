@@ -36,5 +36,5 @@ void TankAmmo::update() {
 }
 
 float TankAmmo::getScaleFactor() const {
-    return 4.0f;  // Even bigger than bullets to represent tank shells
+    return 5.0f;  // Larger than bullet (3.0f) to indicate heavier ammo
 } 

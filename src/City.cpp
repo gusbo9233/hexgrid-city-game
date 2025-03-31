@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <cmath>
 #include <limits>
-
+#include "../include/buildings/ResidentialArea.h"
 City::City(std::vector<Hexagon*> cityHexes, Allegiance allegiance) 
     : cityHexes(cityHexes), mAllegiance(allegiance)
 {
@@ -61,5 +61,28 @@ void City::generateBuildings() {
         
         // Store the building in our map, transferring ownership
         buildings[centerHex->getCoord()] = std::move(cityCenter);
+    }
+    
+    // Get residential areas around the city center
+    if (centerHex && cityHexes.size() > 1) {
+        // Find a suitable hex for a residential area
+        for (auto* hex : cityHexes) {
+            // Skip the center hex where we already placed the city center
+            if (hex == centerHex) continue;
+            
+            // Skip hexes that already have buildings
+            if (hex->hasBuilding()) continue;
+            
+            // Create a residential area
+            auto residentialArea = std::make_unique<ResidentialArea>(hex->getPosition(), mAllegiance);
+            
+            // Add the building to the hex
+            hex->setBuilding(residentialArea.get());
+            
+            // Store the building in our map
+            buildings[hex->getCoord()] = std::move(residentialArea);
+            
+            break; // Just add one residential area for now
+        }
     }
 }

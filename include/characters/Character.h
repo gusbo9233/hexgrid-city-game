@@ -66,6 +66,7 @@ class Character : public GameObject {
         // Health status methods
         int getHealth() const { return health; }
         bool isDead() const { return health <= 0; }
+        std::vector<TerrainType> getTraversableTerrain() const { return mTraversableTerrain; }
     protected:
         static constexpr float STANDARD_SIZE = 25.0f;
         
@@ -78,6 +79,7 @@ class Character : public GameObject {
         
         std::optional<ProjectileType> mProjectileType;
         std::optional<sf::Vector2f> mTargetPosition;
+        std::vector<TerrainType> mTraversableTerrain;
         
         int mQ;
         int mR;

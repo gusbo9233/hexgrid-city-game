@@ -5,15 +5,19 @@
 
 class Individual {
     public:
-        Individual();
+        Individual(int age, int intelligence, int happiness, int health);
         ~Individual();
-        
+        int getAge() const;
+        int getIntelligence() const;
+        int getHappiness() const;
+        int getHealth() const;
+        int getIncome() const;
     private:
     int age;
+    int intelligence;
     int health;
     int happiness;
-    Profession* profession;
-    int education;
+    int income;
 };
 
 #endif // INDIVIDUAL_H
